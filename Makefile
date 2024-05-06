@@ -13,4 +13,7 @@ devserver:
 devmigrate:
 	python -mpretix migrate
 
+shell:
+	python -mpretix shell
+
 .PHONY: all localecompile localegen
