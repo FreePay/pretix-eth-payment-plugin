@@ -8,18 +8,14 @@ from pretix.base.models import (
     OrderRefund,
 )
 
-from web3 import Web3
-
 from pretix_eth.models import SignedMessage
-from pretix_eth.network.tokens import IToken, \
-    all_token_and_network_ids_to_tokens
 
 import pytz
-
 
 def date_to_string(time_zone, date):
     return date.astimezone(time_zone).date().strftime('%Y-%m-%d')
 
+# TODO test exporter still works and meets administrative needs
 
 def payment_to_row(payment):
     time_zone = pytz.timezone(payment.order.event.settings.timezone)
@@ -29,17 +25,8 @@ def payment_to_row(payment):
         completion_date = ''
 
     currency_type = payment.info_data.get("currency_type", "")
-    token: IToken = all_token_and_network_ids_to_tokens.get(currency_type, None)
-
-    if token is None:
-        chain_id = currency_type
-        token_address = f"Missing ERC20 contract data for {currency_type}"
-    else:
-        chain_id = token.CHAIN_ID
-        token_address = token.ADDRESS
 
     fiat_amount = payment.amount
-    token_amount = payment.info_data.get("amount", "")
     token_rate = payment.info_data.get("token_rate", "")
 
     confirmed_transaction: SignedMessage = payment.signed_messages.filter(
@@ -51,10 +38,12 @@ def payment_to_row(payment):
         sender_address = confirmed_transaction.sender_address
         recipient_address = confirmed_transaction.recipient_address
         transaction_hash = confirmed_transaction.transaction_hash
+        chain_id = confirmed_transaction.chain_id
     else:
         sender_address = None
         recipient_address = None
         transaction_hash = None
+        chain_id = None
 
     row = [
         "Payment",
@@ -65,13 +54,11 @@ def payment_to_row(payment):
         completion_date,
         payment.state,
         fiat_amount,
-        Web3.from_wei(int(token_amount), 'ether'),
         currency_type,
         sender_address,
         recipient_address,
         transaction_hash,
         chain_id,
-        token_address,
         token_rate,
     ]
 
@@ -84,10 +71,9 @@ class EthereumOrdersExporter(ListExporter):
 
     headers = (
         'Type', 'Event slug', 'Order', 'Payment ID', 'Creation date',
-        'Completion date', 'Status', 'Fiat Amount', 'Token Amount', 'Token',
-        'ETH or DAI sender address', 'ETH or DAI receiver address',
-        'Transaction Hash', 'Chain ID', 'DAI contract address',
-        'Token Rate at time of order',
+        'Completion date', 'Status', 'Fiat Amount', 'Currency Type',
+        'Sender address', 'Receiver address',
+        'Transaction Hash', 'Chain ID', 'Token Rate at time of order',
     )
 
     @property

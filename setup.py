@@ -54,8 +54,6 @@ setup(
     license='Apache Software License',
     install_requires=[
         "pretix>=4.16",
-        "web3>=6",
-        # django-bootstrap3 22.2 under py3.8, added for pip legacy resolver to avoid conflicts
         'importlib-metadata<3; python_version<"3.8"',
         "protobuf~=4.25.3",
         "grpcio~=1.62",

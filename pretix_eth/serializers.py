@@ -4,28 +4,17 @@ from rest_framework import fields
 from pretix.base.models import Order
 
 from pretix_eth.models import SignedMessage
-from pretix_eth.network.tokens import IToken, all_token_and_network_ids_to_tokens
-from pretix_eth.utils import get_message_to_sign
-
 
 class TransactionDetailsSerializer(Serializer):
-    chain_id = fields.IntegerField()
     currency = fields.CharField()
-    # contract address for non-native ERC20 currencies like DAI
-    erc20_contract_address = fields.CharField(allow_null=True)
     recipient_address = fields.CharField()
     amount = fields.CharField()
-    message = fields.CharField()
     is_signature_submitted = fields.BooleanField()
-    has_other_unpaid_orders = fields.BooleanField()
+    # has_other_unpaid_orders = fields.BooleanField() # TODO rm? see related note in views.py
 
     _context = None
 
     def to_representation(self, instance):
-        token: IToken = all_token_and_network_ids_to_tokens[
-            instance.info_data.get('currency_type')
-        ]
-
         recipient_address = instance.payment_provider.get_receiving_address()
 
         another_signature_submitted = SignedMessage.objects.filter(
@@ -35,23 +24,13 @@ class TransactionDetailsSerializer(Serializer):
 
         # don't let the user pay for multiple order payments wwithin one order
         return {
-            "chain_id": token.CHAIN_ID,
-            "network_identifier": token.NETWORK_IDENTIFIER,
-            "currency": token.TOKEN_SYMBOL,
-            "erc20_contract_address": token.ADDRESS,
+            "currency": "USD", # TODO support more currencies and dynamically populate this field
+            # TODO include offered ETHUSD exchange rate (or offered ETH amount)
             "recipient_address": recipient_address,
             "amount": str(instance.info_data.get('amount')),
-            "message": get_message_to_sign(
-                sender_address=self.context.get('request').query_params.get(
-                    'sender_address'),
-                receiver_address=recipient_address,
-                chain_id=token.CHAIN_ID,
-                order_code=instance.order.code
-            ),
             "is_signature_submitted": another_signature_submitted,
-            "has_other_unpaid_orders": None,
+            # "has_other_unpaid_orders": None, # TODO rm? see related note in views.py
         }
-
 
 class PaymentStatusSerializer(ModelSerializer):
 

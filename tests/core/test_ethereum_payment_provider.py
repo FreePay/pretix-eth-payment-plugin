@@ -37,28 +37,18 @@ def test_provider_is_allowed(event, provider):
 
     # test that incorrect settings lead to provider being disallowed.
     provider.settings.set("TOKEN_RATES", dict())
-    provider.settings.set("_NETWORKS", [])
-    provider.settings.set("NETWORK_RPC_URL", dict())
     provider.settings.set("SINGLE_RECEIVER_ADDRESS",
-                          "0x0000000000000000000000000000000000000000")
-    provider.settings.set("WALLETCONNECT_PROJECT_ID",
-                          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+                          "0x0000000000000000000000000000000000000000")    
     assert not provider.is_allowed(request)
 
     # now test with right values:
     provider.settings.set("TOKEN_RATES", {"ETH_RATE": TEST_ETH_RATE})
-    provider.settings.set("_NETWORKS", ["L1"])
-    provider.settings.set(
-        "NETWORK_RPC_URL",
-        {"L1_RPC_URL": "https://mainnet.infura.io/v3/somekeyvaluehere"},
-    )
     assert provider.is_allowed(request)
 
 
 @pytest.mark.django_db
 def test_provider_payment_form_fields_only_ETH_L1(provider):
     provider.settings.set("TOKEN_RATES", {"ETH_RATE": TEST_ETH_RATE})
-    provider.settings.set("_NETWORKS", ["L1"])
 
     payment_form_fields = provider.payment_form_fields
     currency_type_field = payment_form_fields["currency_type"]
@@ -70,7 +60,6 @@ def test_provider_payment_form_fields_only_ETH_L1(provider):
 @pytest.mark.django_db
 def test_provider_payment_form_fields_only_DAI_L1(provider):
     provider.settings.set("TOKEN_RATES", {"DAI_RATE": TEST_DAI_RATE})
-    provider.settings.set("_NETWORKS", ["L1"])
 
     payment_form_fields = provider.payment_form_fields
     currency_type_field = payment_form_fields["currency_type"]
@@ -82,7 +71,6 @@ def test_provider_payment_form_fields_only_DAI_L1(provider):
 @pytest.mark.django_db
 def test_provider_payment_form_fields_multiple_networks_single_currency(provider):
     provider.settings.set("TOKEN_RATES", {"DAI_RATE": TEST_DAI_RATE})
-    provider.settings.set("_NETWORKS", ["L1", "Goerli", "GoerliOptimism"])
 
     payment_form_fields = provider.payment_form_fields
     currency_type_field = payment_form_fields["currency_type"]

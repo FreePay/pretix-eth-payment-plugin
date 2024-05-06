@@ -4,6 +4,7 @@ const webpack = require('webpack');
 
 module.exports = {
   mode: 'production',
+  devtool: 'source-map',
   entry: {
     main: './src/web3modal.js',
     periodicCheck: './src/run_periodic_check.js'
@@ -13,7 +14,6 @@ module.exports = {
     path: path.resolve(__dirname, '..', 'static', 'pretix_eth', 'web3modal-dist'),
     filename: 'web3modal.[contenthash].js',
     clean: true,
-
   },
   plugins: [
     new webpack.optimize.LimitChunkCountPlugin({

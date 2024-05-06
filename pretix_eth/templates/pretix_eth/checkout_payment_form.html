@@ -1,6 +1,10 @@
 {{ form.media }}
 
+{% load i18n %}
 {% load bootstrap3 %}
 <div class="form-horizontal">
+    {% blocktrans trimmed %}
+    <p>Pay ETH or stablecoins on L1 or L2</p>
+    {% endblocktrans %}
     {% bootstrap_form form layout='horizontal' %}
 </div>

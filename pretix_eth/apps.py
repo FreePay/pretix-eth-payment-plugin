@@ -3,7 +3,6 @@ from django.utils.translation import gettext_lazy as _
 
 from . import __version__
 
-
 class EthApp(AppConfig):
     name = 'pretix_eth'
     verbose_name = 'Pretix Ethereum Payment Provider'

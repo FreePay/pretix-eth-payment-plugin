@@ -1,64 +1,26 @@
 "use strict";
 
-import { getAccount } from "@wagmi/core";
-import chains from "./chains.js";
-
-// files that interact with the page DOM
-
 const GlobalPretixEthState = {
-    selectedAccount: null,  // address of the currently connected account
-    signedByAccount: null,  // address of the account that has signed the message, to check on account chages
-    messageSignature: null,
     paymentDetails: null,
     // payment flow flags
-    signatureRequested: false,  // true if js has
-    transactionRequested: false,
     transactionHashSubmitted: false,
-    //
     lastOrderStatus: '',
     // interface and data-bearing tags
     elements: {
-        divPrepare: document.getElementById("prepare"),
         divError: document.getElementById("message-error"),
         divSuccess: document.getElementById("success"),
         divTransactionHash: document.getElementById("pretix-eth-transaction-hash"),
         aOrderDetailURL: document.getElementById("pretix-order-detail-url"),
-        aNetworkData: document.getElementById("pretix-data-chain-info"),
-        buttonConnect: document.getElementById("btn-connect"),
+        buttonPay: document.getElementById("btn-pay"),
         submittedTransactionHash: document.getElementById("pretix-eth-submitted-transaction-hash"),
-        paymentNetworkName: document.getElementById("payment-network-id")
-
     },
     selectors: {
         paymentSteps: document.querySelectorAll(".pretix-eth-payment-steps")
     },
-    // json data used to find block explorere urls mostly
-    chains: [],
-    // web3modal instance
-    web3Modal: null
 }
-
-async function signIn() {
-    try {
-        const account = await getAccount();
-
-        if (account.isConnected) {
-            return true;
-        }
-
-        await GlobalPretixEthState.web3Modal.open()
-    } catch (e) {
-        console.error(e, 'Sign in failed')
-
-        throw e;
-    }
-
-    return false;
-}
-
 
 function getTransactionDetailsURL() {
-    return GlobalPretixEthState.elements.buttonConnect.getAttribute("data-transaction-details-url");
+    return GlobalPretixEthState.elements.buttonPay.getAttribute("data-transaction-details-url");
 }
 
 async function getPaymentTransactionData(refresh = false) {
@@ -66,13 +28,9 @@ async function getPaymentTransactionData(refresh = false) {
         return GlobalPretixEthState.paymentDetails
     }
 
-    const walletAddress = await getAccount()?.address;
-    const url = getTransactionDetailsURL();
-    const response = await fetch(url + '?' + new URLSearchParams({
-        sender_address: walletAddress
-    }));
+    const response = await fetch(getTransactionDetailsURL());
 
-    if (response.status >= 400) {
+    if (response.status >= 400) { // TODO should this be `if response.status is not 2xx`?
         throw "Failed to fetch order details. If this problem persists, please contact the organizer directly.";
     }
 
@@ -102,21 +60,6 @@ function getCookie(name) {
     }
 }
 
-function convertHashToExplorerLink(chain_id, transactionHash) {
-    const chainMatch = chains.filter(chainInfo => chainInfo.chain.id === parseInt(chain_id));
-    let chain;
-
-    if (chainMatch) chain = chainMatch[0].chain;
-
-    const explorerURL = chain?.blockExplorers?.etherscan?.url;
-
-    if (explorerURL) {
-        return '<a href="' + explorerURL + '/tx/' + transactionHash + '" target="_blank">' + transactionHash + "</a>"
-    } else {
-        return transactionHash
-    }
-}
-
 /*
 * Success and error handling
 */
@@ -126,10 +69,6 @@ function showError(message = '', reset_state = true) {
         message = "";
         reset_state = false;
     } else {
-        // reset
-        GlobalPretixEthState.transactionRequested = false;
-        GlobalPretixEthState.signatureRequested = false;
-
         if (typeof message === "object") {
             if (message.data && message.data.message) {
                 message = message.data.message + ". Please try again."
@@ -149,10 +88,10 @@ function showError(message = '', reset_state = true) {
     GlobalPretixEthState.elements.divError.innerHTML = message;
 
     if (reset_state === true) {
-        displayOnlyId("prepare");
+        displayOnlyId("pay");
     }
     try {
-        GlobalPretixEthState.elements.buttonConnect.removeAttribute("disabled");
+        GlobalPretixEthState.elements.buttonPay.removeAttribute("disabled");
     } catch (e) {
         return false
     }
@@ -176,24 +115,13 @@ function displayOnlyId(divId) {
     );
 }
 
-function showSuccessMessage(transactionHash, safeUrl) {
+function showSuccessMessage(paymentDetails) {
     GlobalPretixEthState.transactionHashSubmitted = true;
-    const chain_id = GlobalPretixEthState.elements.aNetworkData.getAttribute("data-chain-id")
-    if (safeUrl) {
-        GlobalPretixEthState.elements.divTransactionHash.innerHTML = safeUrl
-    } else {
-        GlobalPretixEthState.elements.divTransactionHash.innerHTML = convertHashToExplorerLink(chain_id, transactionHash);
-    }
+    GlobalPretixEthState.elements.divTransactionHash.innerHTML = `${paymentDetails.transactionHash} (chain ID ${paymentDetails.chainId})`; // TODO final rendering of payment details. Can we show block explorer link passed from 3c here?
     displayOnlyId();
     GlobalPretixEthState.elements.divSuccess.style.display = "block";
 }
 
 export {
-    getCookie, GlobalPretixEthState,
-    getPaymentTransactionData,
-    convertHashToExplorerLink,
-    getTransactionDetailsURL,
-    showError, resetErrorMessage, displayOnlyId,
-    showSuccessMessage,
-    signIn
+    GlobalPretixEthState, displayOnlyId, getCookie, getPaymentTransactionData, getTransactionDetailsURL, resetErrorMessage, showError, showSuccessMessage
 };

@@ -1,4 +1,5 @@
 {
-  "main.js": "/static/pretix_eth/web3modal-dist/web3modal.dd86b0b93306dd121721.js",
-  "periodicCheck.js": "/static/pretix_eth/web3modal-dist/web3modal.30b71e763c28fe96ef2e.js"
+  "main.js": "/static/pretix_eth/web3modal-dist/web3modal.97e18fd84746833f0046.js",
+  "periodicCheck.js": "/static/pretix_eth/web3modal-dist/web3modal.ebe91d40da5f60dacd9b.js",
+  "web3modal.js.map": "/static/pretix_eth/web3modal-dist/web3modal.ebe91d40da5f60dacd9b.js.map"
 }

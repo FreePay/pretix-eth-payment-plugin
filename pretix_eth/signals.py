@@ -13,9 +13,7 @@ from pretix.base.signals import (
 
 from .exporter import EthereumOrdersExporter
 
-
-NUM_WIDGET = '<div class="numwidget"><span class="num">{num}</span><span class="text">{text}</span></div>'  # noqa: E501
-
+# TODO which of these signals is still needed? What are updates are needed?
 
 @receiver(process_response, dispatch_uid="payment_eth_add_question_type_csp")
 def signal_process_response(sender, request, response, **kwargs):
@@ -41,32 +39,9 @@ def signal_process_response(sender, request, response, **kwargs):
             "https://fonts.gstatic.com"
         ],
         'frame-src': [
-            'https://verify.walletconnect.org',
-            'https://verify.walletconnect.com'
+            'http://localhost:3000',  # TODO source this 3cities origin dynamically from plugin config
         ],
-        # Chrome correctly errors out without this CSP
         'connect-src': [
-            "https://api.web3modal.com",
-            "wss://relay.walletconnect.com",
-            "https://zkevm-rpc.com/",
-            "https://explorer-api.walletconnect.com",
-            "https://rpc.walletconnect.com",
-            "https://zksync2-mainnet.zksync.io/",
-            "https://rpc.ankr.com/eth_goerli",
-            "https://registry.walletconnect.com/",
-            "https://*.bridge.walletconnect.org/",
-            "wss://*.bridge.walletconnect.org/",
-            "https://bridge.walletconnect.org/",
-            "wss://bridge.walletconnect.org/",
-            "https://*.infura.io/",
-            "wss://*.infura.io/",
-            "https://*.safe.global",
-            "https://cloudflare-eth.com/",
-            "wss://www.walletlink.org/",
-            "https://www.sepoliarpc.space/",
-            "https://rpc.sepolia.org/",
-            "https://arb1.arbitrum.io/rpc",
-            "https://mainnet.optimism.io/"
         ],
         'manifest-src': ["'self'"],
     })
@@ -74,6 +49,7 @@ def signal_process_response(sender, request, response, **kwargs):
     return response
 
 
+# TODO s/payment_eth_add_web3modal_css_and_javascript/something-not-named-after-web3modal/
 @receiver(html_head,
           dispatch_uid="payment_eth_add_web3modal_css_and_javascript")
 def add_web3modal_css_and_javascript(sender, request, **kwargs):
@@ -85,12 +61,10 @@ def add_web3modal_css_and_javascript(sender, request, **kwargs):
     }
     return template.render(context)
 
-
 @receiver(register_payment_providers, dispatch_uid="payment_eth")
 def register_payment_provider(sender, **kwargs):
     from .payment import Ethereum
     return Ethereum
-
 
 @receiver(register_data_exporters, dispatch_uid='single_event_eth_orders')
 def register_data_exporter(sender, **kwargs):
