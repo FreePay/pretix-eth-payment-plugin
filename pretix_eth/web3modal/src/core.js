@@ -102,7 +102,7 @@ async function makePayment() {
         // }
 
         make3citiesIframe({
-            tcBaseUrl: 'http://localhost:3000/#/pay?c=CAESFKwNd1PqKBZQG1f66a1mVzkBg4SzIgICASoCARJaDkRldmNvbiB0aWNrZXRz', // TODO source this securely from server config
+            tcBaseUrl: 'https://3cities.xyz/#/pay?c=CAESFKwNd1PqKBZQG1f66a1mVzkBg4SzIgICASoCARJaDkRldmNvbiB0aWNrZXRz', // TODO source this securely from server config
             paymentLogicalAssetAmountInUsd: GlobalPretixEthState.paymentDetails['amount'],
             onCheckout: submitPaymentDetailsToServer,
         });
