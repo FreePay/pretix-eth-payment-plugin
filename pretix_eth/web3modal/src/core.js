@@ -50,10 +50,11 @@ function make3citiesIframe({
     // TODO pass ethusd exchange rate to 3cities to override 3cities' own internal exchange rate engine with the user's guaranteed rate determined internally by pretix
     // TODO set 3cities SDK receiver address from GlobalPretixEthState.paymentDetails['recipient_address'] and also support an optionally distinct receiver address per chain --> WARNING, right now, the configured receiver address in pretix-eth (ie. globalPretixEthState.paymentDetails['recipient_address']) must coincidentally be the same value as the receiver address baked into the 3cities base URL
     const requireInIframeOrErrorWith = 'Standalone page detected. Please use the "Click here to pay" pop-up in Pretix'; // require 3cities to be embedded as an iframe by way of refusing to proceed with payment unless a parent window is detected. For pretix-eth, this prevents payments from occurring in a context where the pretix web client ends up not being the parent window and thus can't receive the user's signature and transaction details via window.parent.postMessage. For example, some wallet connection libraries can cause the 3cities iframe to be opened in a new browser; instead, the user should open the pretix web app in the new browser --> TODO instead of just error msg, optionally allow a redirect URL ("You need to pay inside Pretix. Redirecting you automatically back to pretex... click here if it doesn't happen")
-    const requireIframeParentOrigin = window.location.origin; // iff defined, if 3cities calls window.parent.postMessage, then 3cities will require that the window receiving the message has this origin. In practice, this means that only this window may receive the user's signature and transaction details when 3cities calls postMessage
-    const verifyAddressOwnership = { // iff this config object is defined, 3cities will ask the user for a CAIP-222-style signature to verify their ownership of the connected wallet address prior to checking out. This signature can then be obtained from the 3cities iframe by way of window.parent.postMessage and, in future, via webhooks and/or redirect URL params
-        verifyEip1271Signature: true, // iff this is true, 3cities will attempt to detect if the user's conected address is a smart contract wallet, and if this is detected, 3cities will verify the signature by requiring an isValidSignature call to return true before allowing payment to proceed. While this clientside call to isValidSignature is insecure from the point of view of the serverside verifier, in practice, this can help prevent a user from paying with a wallet whose ownership signature can't later be verified by the serverside verifier. If user's connected address is a counterfactually instantiated smart contract wallet, then it'll appear to be an EOA to the 3cities iframe and this verification will be skipped prior to payment. However, after payment, the serverside verifier may optionally detect this address as a smart contract wallet and verify the eip1271 signature at that point
+    const iframeParentWindowOrigin = window.location.origin; // iff defined, if 3cities calls window.parent.postMessage, then 3cities will require that the window receiving the message has this origin. In practice, this means that only this window may receive the user's signature and transaction details when 3cities calls postMessage
+    const authenticateSenderAddress = { // iff this config object is defined, 3cities will ask the user for a CAIP-222-style signature to authenticate their ownership of the connected wallet address prior to checking out. This signature can then be obtained from the 3cities iframe by way of window.parent.postMessage and, in future, via webhooks and/or redirect URL params
+        verifyEip1271Signature: true, // iff this is true, 3cities will attempt to detect if the user's conected address is a smart contract wallet, and if this is detected, 3cities will verify the eip1271 signature by requiring an isValidSignature call to return true before allowing payment to proceed. While this clientside call to isValidSignature is insecure from the point of view of the serverside verifier, in practice, this can help prevent a user from paying with a wallet whose ownership signature can't later be verified by the serverside verifier. If user's connected address is a counterfactually instantiated smart contract wallet, then it'll appear to be an EOA to the 3cities iframe and this verification will be skipped prior to payment. However, after payment, the serverside verifier may optionally detect this address as a smart contract wallet and verify the eip1271 signature at that point --> WARNING 3cities does not actually perform this verification yet
     };
+    const autoCloseIframeOnSuccess = true; // iff this is true, upon successful checkout,the 3cities iframe will automatically close after a short delay
     // END - mock 3cities options to later be migrated to SDK
 
     const computedThreeCitiesUrl = (() => {
@@ -61,11 +62,12 @@ function make3citiesIframe({
         const urlParts = [tcBaseUrl];
         urlParts.push(`&amount=${paymentLogicalAssetAmountInUsd}`);
         if (requireInIframeOrErrorWith) urlParts.push(`&requireInIframeOrErrorWith=${encodeURIComponent(requireInIframeOrErrorWith)}`);
-        if (requireIframeParentOrigin) urlParts.push(`&requireIframeParentOrigin=${encodeURIComponent(requireIframeParentOrigin)}`)
-        if (verifyAddressOwnership) {
-            urlParts.push('&verifyAddressOwnership=1');
-            if (verifyAddressOwnership.verifyEip1271Signature) urlParts.push('&verifyEip1271Signature=1');
+        if (iframeParentWindowOrigin) urlParts.push(`&iframeParentWindowOrigin=${encodeURIComponent(iframeParentWindowOrigin)}`)
+        if (authenticateSenderAddress) {
+            urlParts.push('&authenticateSenderAddress=1');
+            if (authenticateSenderAddress.verifyEip1271Signature) urlParts.push('&verifyEip1271Signature=1');
         }
+        if (autoCloseIframeOnSuccess) urlParts.push('&autoCloseIframeOnSuccess=1');
         const url = urlParts.join('');
         return url;
     })();
@@ -135,9 +137,9 @@ async function submitPaymentDetailsToServer(paymentDetails) {
         const url = getTransactionDetailsURL();
         const searchParams = new URLSearchParams({
             csrfmiddlewaretoken: csrf_cookie,
-            senderAddress: paymentDetails.message.senderAddress, // we extract senderAddress and send it separately because the backend wants senderAddress as structured data but the type of `message` is opaque to the backend (ie. the backend treats `message` as a blob)
-            signature: paymentDetails.signature,
-            message: JSON.stringify(paymentDetails.message),
+            senderAddress: paymentDetails.caip222StyleMessageThatWasSigned.senderAddress, // we extract senderAddress and send it separately because the backend wants senderAddress as structured data but the type of `message` is opaque to the backend (ie. the backend treats its received `message` as a blob)
+            signature: paymentDetails.caip222StyleSignature,
+            message: JSON.stringify(paymentDetails.caip222StyleMessageThatWasSigned),
             transactionHash: paymentDetails.transactionHash,
             chainId: paymentDetails.chainId,
         });
