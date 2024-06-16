@@ -5,7 +5,9 @@
         <dt>{% trans "Amount" %}</dt>
         <dd>{{ payment_info.amount }}</dd>
         <dt>{% trans "Currency type" %}</dt>
-        <dd>{{ payment_info.currency_type }}</dd>
+        <dd>{{ payment_info.primary_currency }}</dd>
+        <dt>{% trans "USD/ETH rate" %}</dt>
+        <dd>{{ payment_info.usd_per_eth }}</dd>
         <dt>{% trans "Expected Receiving Wallet Address" %}</dt>
         <dd>{{ wallet_address }}</dd>
         <dt>{% trans "Transaction Sender Address" %}</dt>

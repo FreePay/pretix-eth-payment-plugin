@@ -5,10 +5,12 @@ from pretix.base.models import Order
 
 from pretix_eth.models import SignedMessage
 
+
 class TransactionDetailsSerializer(Serializer):
-    currency = fields.CharField()
-    recipient_address = fields.CharField()
     amount = fields.CharField()
+    primary_currency = fields.CharField()
+    usd_per_eth = fields.CharField()
+    recipient_address = fields.CharField()
     is_signature_submitted = fields.BooleanField()
     # has_other_unpaid_orders = fields.BooleanField() # TODO rm? see related note in views.py
 
@@ -22,15 +24,16 @@ class TransactionDetailsSerializer(Serializer):
             invalid=False
         ).exists()
 
-        # don't let the user pay for multiple order payments wwithin one order
+        # don't let the user pay for multiple order payments within one order
         return {
-            "currency": "USD", # TODO support more currencies and dynamically populate this field
-            # TODO include offered ETHUSD exchange rate (or offered ETH amount)
-            "recipient_address": recipient_address,
             "amount": str(instance.info_data.get('amount')),
+            "primary_currency": instance.info_data.get('primary_currency'),
+            "usd_per_eth": str(instance.info_data.get('usd_per_eth')),
+            "recipient_address": recipient_address,
             "is_signature_submitted": another_signature_submitted,
             # "has_other_unpaid_orders": None, # TODO rm? see related note in views.py
         }
+
 
 class PaymentStatusSerializer(ModelSerializer):
 

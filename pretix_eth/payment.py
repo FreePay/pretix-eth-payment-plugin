@@ -18,8 +18,10 @@ from pretix.base.models import (
 from pretix.base.payment import BasePaymentProvider
 
 from pretix_eth.models import SignedMessage
+from pretix_eth.network.helpers import get_eth_price_from_external_apis
 
 logger = logging.getLogger(__name__)
+
 
 class TokenRatesJSONDecoder(JSONDecoder):
     ALLOWED_KEYS = ('ETH_RATE', 'DAI_RATE',)
@@ -32,6 +34,7 @@ class TokenRatesJSONDecoder(JSONDecoder):
             if not isinstance(value, (int, float)):
                 raise JSONDecodeError("Please supply integers or floats as values.", "aaabbb", 0)
         return decoded
+
 
 class Ethereum(BasePaymentProvider):
     identifier = "ethereum"
@@ -82,19 +85,13 @@ class Ethereum(BasePaymentProvider):
 
         return form_fields
 
-    def get_token_rates_from_admin_settings(self):
-        return self.settings.get("TOKEN_RATES", as_type=dict, default={})
-
     def get_receiving_address(self):
         return self.settings.SINGLE_RECEIVER_ADDRESS
 
     def is_allowed(self, request, **kwargs):
-        one_or_more_currencies_configured = (
-            len(self.get_token_rates_from_admin_settings()) > 0
-        )
-        # TODO: Check that TOKEN_RATES conforms to a schema.
-        if not one_or_more_currencies_configured:
-            logger.error("No currencies configured")
+        is_event_currency_supported = self.event.currency == "USD"  # TODO support EUR payments
+        if not is_event_currency_supported:
+            logger.error("The Ethereum payment provider only supports USD denominated events.")
 
         receiving_address = self.get_receiving_address()
         single_receiver_mode_configured = bool(
@@ -107,7 +104,7 @@ class Ethereum(BasePaymentProvider):
 
         return all(
             (
-                one_or_more_currencies_configured,
+                is_event_currency_supported,
                 single_receiver_mode_configured,
                 super().is_allowed(request, **kwargs),
             )
@@ -131,9 +128,6 @@ class Ethereum(BasePaymentProvider):
         form = self.payment_form(request)
 
         if form.is_valid():
-            request.session[
-                "payment_currency_type"
-            ] = "DAI - L1"  # TODO the currency, token, and network that will end up being used for payment are not yet known; they are not determined until the user is about to pay. In pretix, we want every order to be denominated in USD and additionally offer a locked-in ETHUSD rate or ETH price. For now, we hardcode "DAI - L1" and don't yet support an ETHUSD rate or ETH price --> TODO design a solution here and remove "DAI - L1"
             self._update_session_payment_amount(request, cart["total"])
             return True
 
@@ -143,59 +137,57 @@ class Ethereum(BasePaymentProvider):
         form = self.payment_form(request)
 
         if form.is_valid():
-            request.session[
-                "payment_currency_type"
-            ] = "DAI - L1"  # TODO the currency, token, and network that will end up being used for payment are not yet known; they are not determined until the user is about to pay. In pretix, we want every order to be denominated in USD and additionally offer a locked-in ETHUSD rate or ETH price. For now, we hardcode "DAI - L1" and don't yet support an ETHUSD rate or ETH price --> TODO design a solution here and remove "DAI - L1"
             self._update_session_payment_amount(request, payment.amount)
             return True
 
         return False
 
     def payment_is_valid_session(self, request):
-        # Note: payment_currency_type check already done
-        # in token_verbose_name_to_token_network_id()
         return all(
             (
-                "payment_currency_type" in request.session,
-                "payment_time" in request.session,
                 "payment_amount" in request.session,
+                "payment_primary_currency" in request.session,
+                "payment_usd_per_eth" in request.session,
+                "payment_time" in request.session,
             )
         )
 
     def _payment_is_valid_info(self, payment: OrderPayment) -> bool:
-        # Note: payment_currency_type check already done
-        # in token_verbose_name_to_token_network_id()
         return all(
             (
-                "currency_type" in payment.info_data,
-                "time" in payment.info_data,
                 "amount" in payment.info_data,
+                "primary_currency" in payment.info_data,
+                "usd_per_eth" in payment.info_data,
+                "time" in payment.info_data,
             )
         )
 
     def execute_payment(self, request: HttpRequest, payment: OrderPayment):
         payment.info_data = {
-            "currency_type": request.session["payment_currency_type"],
-            "time": request.session["payment_time"],
             "amount": request.session["payment_amount"],
-            "token_rate": request.session["token_rate"]
+            "primary_currency": request.session["payment_primary_currency"],
+            "usd_per_eth": request.session["payment_usd_per_eth"],
+            "time": request.session["payment_time"],
         }
 
         payment.save(update_fields=["info"])
 
     def _update_session_payment_amount(self, request: HttpRequest, total):
-        if self.event.currency != "USD": # TODO support EUR payments
+        if self.event.currency != "USD":  # TODO support EUR payments
             raise ImproperlyConfigured(
                 "The Ethereum payment provider only supports USD denominated events."
             )
 
-        units_per_dollar = 10**18 # 1 USD = 10^18 full-precision units of (an abstact logical) stablecoin
-        final_price = int(units_per_dollar * total)
-        token_rate = 1 # ie. 1 unit of USD stablecoin = $1
+        # 1 USD = 10^18 full-precision units of (an abstact logical) stablecoin
+        units_per_dollar = 10**18
+        payment_amount = int(units_per_dollar * total)
 
-        request.session["payment_amount"] = final_price
+        usd_per_eth = get_eth_price_from_external_apis('USD')
+
+        request.session["payment_amount"] = payment_amount
+        request.session["payment_primary_currency"] = self.event.currency
+        request.session["payment_usd_per_eth"] = usd_per_eth
         request.session["payment_time"] = int(time.time())
-        request.session["token_rate"] = int(token_rate)
 
     def payment_pending_render(self, request: HttpRequest, payment: OrderPayment):
         template = get_template("pretix_eth/pending.html")
@@ -209,7 +201,7 @@ class Ethereum(BasePaymentProvider):
         })
 
         if not payment_is_valid:
-            return template.render(ctx)
+            return template.render(ctx.flatten())
 
         ctx["transaction_details_url"] = payment.pk
 
@@ -227,7 +219,6 @@ class Ethereum(BasePaymentProvider):
 
         return template.render(ctx.flatten())
 
-    # TODO test payment control
     def payment_control_render(self, request: HttpRequest, payment: OrderPayment):
         template = get_template("pretix_eth/control.html")
 
@@ -246,7 +237,6 @@ class Ethereum(BasePaymentProvider):
             transaction_recipient_address = None
             transaction_hash = None
 
-        # TODO add block explorer link (when it's available in signed message)
         ctx = {
             "payment_info": payment.info_data,
             "wallet_address": hex_wallet_address,

@@ -31,7 +31,8 @@ def fetch_eth_price(api_endpoint, fiat_currency):
             return cached_data["price"]
 
     try:
-        response = requests.get(api_endpoint)
+        # NB here we set a relatively low timeout for the request, which helps prevent a worst-case long wait experience for the customer whose checkout has triggered the recaching of rates
+        response = requests.get(api_endpoint, timeout=10)
         data = response.json()
 
         # Extract ETH price from each API response based on the endpoint
@@ -65,7 +66,7 @@ def get_eth_price_from_external_apis(fiat_currency):
 
     # Calculate the average price while discarding values that deviate too much
     if eth_prices:
-        return statistics.median(eth_prices)
+        return round(statistics.median(eth_prices), 2)
     else:
         print("No valid API results to calculate an average.")
         return None

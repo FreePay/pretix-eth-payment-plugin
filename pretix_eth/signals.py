@@ -1,9 +1,7 @@
 from django.dispatch import receiver
-from django.template.loader import get_template
 
 from pretix.base.middleware import _parse_csp, _merge_csp, _render_csp
 from pretix.presale.signals import (
-    html_head,
     process_response,
 )
 from pretix.base.signals import (
@@ -12,8 +10,6 @@ from pretix.base.signals import (
 )
 
 from .exporter import EthereumOrdersExporter
-
-# TODO which of these signals is still needed? What are updates are needed?
 
 @receiver(process_response, dispatch_uid="payment_eth_add_question_type_csp")
 def signal_process_response(sender, request, response, **kwargs):
@@ -39,7 +35,7 @@ def signal_process_response(sender, request, response, **kwargs):
             "https://fonts.gstatic.com"
         ],
         'frame-src': [
-            'http://3cities.xyz',  # TODO source this 3cities origin dynamically from plugin config
+            'https://staging.3cities.xyz',  # TODO source this 3cities origin dynamically from plugin config
         ],
         'connect-src': [
         ],
@@ -47,19 +43,6 @@ def signal_process_response(sender, request, response, **kwargs):
     })
     response['Content-Security-Policy'] = _render_csp(h)
     return response
-
-
-# TODO s/payment_eth_add_web3modal_css_and_javascript/something-not-named-after-web3modal/
-@receiver(html_head,
-          dispatch_uid="payment_eth_add_web3modal_css_and_javascript")
-def add_web3modal_css_and_javascript(sender, request, **kwargs):
-    # TODO: enable js only when question is asked
-    # url = resolve(request.path_info)
-    template = get_template('pretix_eth/web3modal_css_and_javascript.html')
-    context = {
-        'event': sender,
-    }
-    return template.render(context)
 
 @receiver(register_payment_providers, dispatch_uid="payment_eth")
 def register_payment_provider(sender, **kwargs):

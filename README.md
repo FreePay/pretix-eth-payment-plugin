@@ -99,4 +99,4 @@ In the process tooling like [Web3Modal](https://github.com/Web3Modal/web3modal/)
 
 For Devconnect IST an effort was made to improve the plugin in a variety of ways: WalletConnect support, single receiver mode (accept payments using just one wallet), more networks, automatic ETH rate fetching, improved UI and messaging, and smart contract wallet support. All of these features made it into this version of the plugin, except for smart contract wallet support - issues processing transactions stemming from sc wallets meant that we ultimately had to turn away sc wallet payments altogether.
 
-For Devcon 7, 3cities was [adopted](https://github.com/efdevcon/DIPs/blob/master/DIPs/DIP-37.md) to power ticket payments. 3cities encapsulates web3 elements such as wallets, networks, tokens, and chains, and provides an interface to the pretix plugin for payment transfers and verification.
+For Devcon 7, 3cities was [adopted](https://github.com/efdevcon/DIPs/blob/master/DIPs/DIP-37.md) for ticket payments. 3cities is a decentralized, open-source offchain payment processor to help abstract over wallets, chains, tokens, currencies, and payment methods.

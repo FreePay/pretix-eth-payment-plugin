@@ -15,8 +15,6 @@ import pytz
 def date_to_string(time_zone, date):
     return date.astimezone(time_zone).date().strftime('%Y-%m-%d')
 
-# TODO test exporter still works and meets administrative needs
-
 def payment_to_row(payment):
     time_zone = pytz.timezone(payment.order.event.settings.timezone)
     if payment.payment_date:
@@ -24,10 +22,9 @@ def payment_to_row(payment):
     else:
         completion_date = ''
 
-    currency_type = payment.info_data.get("currency_type", "")
-
+    primary_currency = payment.info_data.get("primary_currency", "")
     fiat_amount = payment.amount
-    token_rate = payment.info_data.get("token_rate", "")
+    usd_per_eth = payment.info_data.get("usd_per_eth", "")
 
     confirmed_transaction: SignedMessage = payment.signed_messages.filter(
         is_confirmed=True).first()
@@ -54,12 +51,12 @@ def payment_to_row(payment):
         completion_date,
         payment.state,
         fiat_amount,
-        currency_type,
+        primary_currency,
         sender_address,
         recipient_address,
         transaction_hash,
         chain_id,
-        token_rate,
+        usd_per_eth,
     ]
 
     return row

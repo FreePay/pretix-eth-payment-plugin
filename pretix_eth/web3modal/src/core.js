@@ -34,6 +34,8 @@ function createOrUpdateSingleton3citiesIframeMessageEventHandler({ tcOrigin, onC
 function make3citiesIframe({
     tcBaseUrl, // string. 3cities client base URL. TODO enumerate the checkout data that currently must be included in the base url vs. those supplied below as url params
     paymentLogicalAssetAmountInUsd, // string. 18 decimal full precision US Dollar amount due for this payment. Ie. `$1 = (10**18).toString()`
+    primaryCurrency, // string. Primary logical currency in which to denominate this payment ("USD", "ETH", etc). Currency must be supported by 3cities.
+    usdPerEth, // string decimal number, eg. '4012.56'. USD/ETH rate to use for this payment. 3cities has its own internal exchange rates but they may be overridden, as we are doing here.
     onCheckout, // callback to invoke on 3cities Checkout event. See below for signature type
 }) {
     const tcIframeContainerId = "3cities-iframe-container";
@@ -54,20 +56,25 @@ function make3citiesIframe({
     const authenticateSenderAddress = { // iff this config object is defined, 3cities will ask the user for a CAIP-222-style signature to authenticate their ownership of the connected wallet address prior to checking out. This signature can then be obtained from the 3cities iframe by way of window.parent.postMessage and, in future, via webhooks and/or redirect URL params
         verifyEip1271Signature: true, // iff this is true, 3cities will attempt to detect if the user's conected address is a smart contract wallet, and if this is detected, 3cities will verify the eip1271 signature by requiring an isValidSignature call to return true before allowing payment to proceed. While this clientside call to isValidSignature is insecure from the point of view of the serverside verifier, in practice, this can help prevent a user from paying with a wallet whose ownership signature can't later be verified by the serverside verifier. If user's connected address is a counterfactually instantiated smart contract wallet, then it'll appear to be an EOA to the 3cities iframe and this verification will be skipped prior to payment. However, after payment, the serverside verifier may optionally detect this address as a smart contract wallet and verify the eip1271 signature at that point --> WARNING 3cities does not actually perform this verification yet
     };
-    const autoCloseIframeOnSuccess = true; // iff this is true, upon successful checkout,the 3cities iframe will automatically close after a short delay
+    const clickToCloseIframeLabel = 'Return to Ticket Shop'; // If this is defined as a string, upon successful checkout, 3cities will present the user with a button to close the iframe, and this button's label will be this string value. If undefined, 3cities's default behavior upon successful checkout is to show a QR code with the payment receipt, and the user can still close the iframe by clicking the X in the corner or anywhere outside the iframe. Note that iframes can't close themselves, see CloseIframe handler here.
+    const requireNativeTokenTransferProxy = true; // iff this is true, 3cities will route any native token transfers through a proxy that emits an ERC20-compliant Transfer event. This must be true for the offchain verifier to detect and successfully verify ETH payments
     // END - mock 3cities options to later be migrated to SDK
 
     const computedThreeCitiesUrl = (() => {
         // today, tcBaseUrl is expected to be of the form `#/?pay=...` ie. having synthetic URL parameters as part of the hash fragment. As a result, we can't use the browser URL API to append search parameters as this api isn't designed to recognize our synthetic search parameters in the hash fragment. Instead, we apply new search params using array-based string manipulation:
+        // TODO use paymentDetails['receipient_address'] to set &receiverAddressOrEns in 3cities. Perhaps defer this until also adding support for a distinct receiver address per chain
         const urlParts = [tcBaseUrl];
-        urlParts.push(`&amount=${paymentLogicalAssetAmountInUsd}`);
+        urlParts.push(`&amount=${encodeURIComponent(paymentLogicalAssetAmountInUsd)}`);
+        urlParts.push(`&currency=${encodeURIComponent(primaryCurrency)}`);
+        urlParts.push(`&usdPerEth=${encodeURIComponent(usdPerEth)}`);
         if (requireInIframeOrErrorWith) urlParts.push(`&requireInIframeOrErrorWith=${encodeURIComponent(requireInIframeOrErrorWith)}`);
         if (iframeParentWindowOrigin) urlParts.push(`&iframeParentWindowOrigin=${encodeURIComponent(iframeParentWindowOrigin)}`)
         if (authenticateSenderAddress) {
             urlParts.push('&authenticateSenderAddress=1');
             if (authenticateSenderAddress.verifyEip1271Signature) urlParts.push('&verifyEip1271Signature=1');
         }
-        if (autoCloseIframeOnSuccess) urlParts.push('&autoCloseIframeOnSuccess=1');
+        if (clickToCloseIframeLabel) urlParts.push(`&clickToCloseIframeLabel=${encodeURIComponent(clickToCloseIframeLabel)}`);
+        if (requireNativeTokenTransferProxy) urlParts.push('&requireNativeTokenTransferProxy=1');
         const url = urlParts.join('');
         return url;
     })();
@@ -102,8 +109,10 @@ async function makePayment() {
         // }
 
         make3citiesIframe({
-            tcBaseUrl: 'https://3cities.xyz/#/pay?c=CAESFKwNd1PqKBZQG1f66a1mVzkBg4SzIgICASoCARJaDkRldmNvbiB0aWNrZXRz', // TODO source this securely from server config
+            tcBaseUrl: 'https://staging.3cities.xyz/#/pay?c=CAESFKwNd1PqKBZQG1f66a1mVzkBg4SzIgICASoCARJaDkRldmNvbiB0aWNrZXRz', // TODO source this securely from server config
             paymentLogicalAssetAmountInUsd: GlobalPretixEthState.paymentDetails['amount'],
+            primaryCurrency: GlobalPretixEthState.paymentDetails['primary_currency'],
+            usdPerEth: GlobalPretixEthState.paymentDetails['usd_per_eth'],
             onCheckout: submitPaymentDetailsToServer,
         });
     }
