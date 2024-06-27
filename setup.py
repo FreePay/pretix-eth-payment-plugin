@@ -55,8 +55,8 @@ setup(
     install_requires=[
         "pretix>=2024.2",
         'importlib-metadata<3; python_version<"3.8"',
-        "protobuf~=4.25.3",
-        "grpcio~=1.62",
+        "protobuf>=4.25.3",
+        "grpcio>=1.62",
     ],
     python_requires='>=3.9, <4',
     extras_require=extras_require,
