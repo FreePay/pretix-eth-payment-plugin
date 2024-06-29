@@ -7,7 +7,6 @@ from json import JSONDecoder, loads, JSONDecodeError
 from django import forms
 from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpRequest
-from django.template import RequestContext
 from django.template.loader import get_template
 from django.utils.translation import gettext_lazy as _
 
@@ -117,12 +116,12 @@ class Ethereum(BasePaymentProvider):
         """
         form = self.payment_form(request)
         template = get_template('pretix_eth/checkout_payment_form.html')
-        ctx = {'request': request, 'form': form}
-        return template.render(ctx)
+        ctx = {'form': form}
+        return template.render(ctx, request)
 
     def checkout_confirm_render(self, request):
         template = get_template("pretix_eth/checkout_payment_confirm.html")
-        return template.render()
+        return template.render({}, request)
 
     def checkout_prepare(self, request, cart):
         form = self.payment_form(request)
@@ -193,15 +192,15 @@ class Ethereum(BasePaymentProvider):
         template = get_template("pretix_eth/pending.html")
 
         payment_is_valid = self._payment_is_valid_info(payment)
-        ctx = RequestContext(request, {
+        ctx = {
             "payment_is_valid": payment_is_valid,
             "order": payment.order,
             "payment": payment,
             'event': self.event,
-        })
+        }
 
         if not payment_is_valid:
-            return template.render(ctx.flatten())
+            return template.render(ctx, request)
 
         ctx["transaction_details_url"] = payment.pk
 
@@ -214,10 +213,10 @@ class Ethereum(BasePaymentProvider):
             submitted_transaction_hash = latest_signed_message.transaction_hash
             order_accepting_payments = not latest_signed_message.another_signature_submitted
 
-        ctx["submitted_transation_hash"] = submitted_transaction_hash
+        ctx["submitted_transaction_hash"] = submitted_transaction_hash
         ctx["order_accepting_payments"] = order_accepting_payments
 
-        return template.render(ctx.flatten())
+        return template.render(ctx, request)
 
     def payment_control_render(self, request: HttpRequest, payment: OrderPayment):
         template = get_template("pretix_eth/control.html")
@@ -245,7 +244,7 @@ class Ethereum(BasePaymentProvider):
             "transaction_hash": transaction_hash,
         }
 
-        return template.render(ctx)
+        return template.render(ctx, request)
 
     abort_pending_allowed = True
 

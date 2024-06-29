@@ -10,7 +10,7 @@
 <a id="pretix-order-detail-url"
   data-order-detail-url="{% eventurl event 'plugins:pretix_eth:event.order.payment_status' organizer=payment.order.event.organizer.slug event=payment.order.event.slug order=payment.order.code secret=payment.order.secret %}"></a>
 
-{% if submitted_transation_hash %}
+{% if submitted_transaction_hash %}
 <script>
   // Fetch build manifest on page load (cache: no-store is to ensure the manifest is always up to date - the bundles referenced in the manifest will still be cached as normal)
   // TODO rename static/web3modal-dist -> web-dist
@@ -34,7 +34,7 @@
       <!-- TODO show block explorer link here instead of just the hash? and/or add chainId? -->
     <strong>
       <span id="pretix-eth-submitted-transaction-hash"> <!-- WARNING run_periodic_check.js depends on this span existing if and only if the user has submitted a payment (ie. transaction hash) for this order -->
-        {{ submitted_transation_hash }}
+        {{ submitted_transaction_hash }}
       </span>
     </strong>
   </p>
