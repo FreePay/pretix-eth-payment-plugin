@@ -109,7 +109,7 @@ async function makePayment() {
         // }
 
         make3citiesIframe({
-            tcBaseUrl: 'https://staging.3cities.xyz/#/pay?c=CAESFKwNd1PqKBZQG1f66a1mVzkBg4SzIgICASoCARJaDkRldmNvbiB0aWNrZXRz', // TODO source this securely from server config
+            tcBaseUrl: 'https://staging.3cities.xyz/#/pay?c=CAESFKwNd1PqKBZQG1f66a1mVzkBg4SzIgICASoCARA6K0VUSCBXRVRIIFVTREMgREFJIFVTRFAgR1VTRCBMVVNEIFBZVVNEIFVTRFQ', // TODO source this securely from server config
             paymentLogicalAssetAmountInUsd: GlobalPretixEthState.paymentDetails['amount'],
             primaryCurrency: GlobalPretixEthState.paymentDetails['primary_currency'],
             usdPerEth: GlobalPretixEthState.paymentDetails['usd_per_eth'],
