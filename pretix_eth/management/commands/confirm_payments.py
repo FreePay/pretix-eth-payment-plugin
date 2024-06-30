@@ -8,7 +8,7 @@ from django_scopes import scope
 from pretix.base.models import OrderPayment
 from pretix.base.models.event import Event
 
-from pretix_eth.verifier.verify_payment import verify_payment
+# from pretix_eth.verifier.verify_payment import verify_payment
 
 logger = logging.getLogger(__name__)
 
