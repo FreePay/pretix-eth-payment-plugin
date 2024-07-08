@@ -69,7 +69,7 @@ class Command(BaseCommand):
                     try:
                         # TODO real request/response types and check response type for verification success
                         # verify_payment()
-                        payment_verified = True
+                        payment_verified = False
                     except Exception as e:
                         logger.error(f"Error verifying payment for order: {order_payment}")
 

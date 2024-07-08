@@ -21,20 +21,6 @@ from pretix_eth.network.helpers import get_eth_price_from_external_apis
 
 logger = logging.getLogger(__name__)
 
-
-class TokenRatesJSONDecoder(JSONDecoder):
-    ALLOWED_KEYS = ('ETH_RATE', 'DAI_RATE',)
-
-    def decode(self, s: str):
-        decoded = super().decode(s)
-        for key, value in loads(decoded).items():
-            if key not in self.ALLOWED_KEYS:
-                raise JSONDecodeError(f"{key} is not an allowed key for this field.", "aaa", 0)
-            if not isinstance(value, (int, float)):
-                raise JSONDecodeError("Please supply integers or floats as values.", "aaabbb", 0)
-        return decoded
-
-
 class Ethereum(BasePaymentProvider):
     identifier = "ethereum"
     verbose_name = _("Pay on Ethereum")
@@ -48,37 +34,25 @@ class Ethereum(BasePaymentProvider):
             list(super().settings_form_fields.items())
             + [
                 (
-                    "TOKEN_RATES",
-                    forms.JSONField(
-                        label=_("Token Rate"),
-                        help_text=_(
-                            "JSON field with key = {TOKEN_SYMBOL}_RATE and value = amount "
-                            "for a token in the fiat currency you have chosen. "
-                            "E.g. 'ETH_RATE':4000 means 1 ETH = 4000 in the fiat currency."
-                        ),
-                        decoder=TokenRatesJSONDecoder,
-                        initial="{}",
-                    ),
-                ),
-                (
                     "SINGLE_RECEIVER_ADDRESS",
                     forms.CharField(
                         label=_("Payment receiver address."),
                         help_text=_("Caution: Must work on all networks configured.")
                     )
                 ),
-                (
-                    "PAYMENT_NOT_RECIEVED_RETRY_TIMEOUT",
-                    forms.IntegerField(
-                        label=_("Payment retry timeout in seconds"),
-                        help_text=_(
-                            "Customers will be allowed to pay again after their previous payment "
-                            "hasn't arrived for a given time. "
-                            "1800s (30min) is a reasonable starting value"
-                        ),
-                        initial=30 * 60,
-                    )
-                ),
+                # TODO PAYMENT_NOT_RECIEVED_RETRY_TIMEOUT is no longer used. Should it be used again or removed?
+                # (
+                #     "PAYMENT_NOT_RECIEVED_RETRY_TIMEOUT",
+                #     forms.IntegerField(
+                #         label=_("Payment retry timeout in seconds"),
+                #         help_text=_(
+                #             "Customers will be allowed to pay again after their previous payment "
+                #             "hasn't arrived for a given time. "
+                #             "1800s (30min) is a reasonable starting value"
+                #         ),
+                #         initial=30 * 60,
+                #     )
+                # ),
             ]
         )
 

@@ -109,7 +109,7 @@ async function makePayment() {
         // }
 
         make3citiesIframe({
-            tcBaseUrl: 'https://staging.3cities.xyz/#/pay?c=CAESFKwNd1PqKBZQG1f66a1mVzkBg4SzIgICASoCARA6K0VUSCBXRVRIIFVTREMgREFJIFVTRFAgR1VTRCBMVVNEIFBZVVNEIFVTRFQ', // TODO source this securely from server config
+            tcBaseUrl: 'https://3cities.xyz/#/pay?c=CAESFGdAb29187sroN7d8mdtO6b1XHAPIgICASoCARA6K0VUSCBVU0RUIExVU0QgUFlVU0QgR1VTRCBVU0RQIERBSSBVU0RDIFdFVEhKNQEKAQAKBAIBBgEKBQMEAwUCCgUJAQQECgcHBwcHBwcKCAQFAwoBAQABCggBBAUHCgMEBAQD', // this is a production payment link with baked in settings: single receiver address 0x67406f6F75F3Bb2bA0DeDdf2676D3bA6F55C700F; chain allowlist Ethereum Mainnet, OP Mainnet, Arbitrum One, Scroll, Linea, Zora, Base, Polygon zkEVM, Blast, Mode; TODO add zkSync Era after multi receiver address is implemented; ETH, WETH, USDC, USDT, DAI, LUSD, USDP, PYUSD, GUSD; TODO add USDGLO --> TODO pass chain/token allowlist and receiver address as URL params sourced from plugin config
             paymentLogicalAssetAmountInUsd: GlobalPretixEthState.paymentDetails['amount'],
             primaryCurrency: GlobalPretixEthState.paymentDetails['primary_currency'],
             usdPerEth: GlobalPretixEthState.paymentDetails['usd_per_eth'],
@@ -132,7 +132,7 @@ async function submitPaymentDetailsToServer(paymentDetails) {
     NB type of message sent from 3cities upon successful checkout:
     {
         kind: 'Checkout';
-        signature: string;
+        signature: `0x${string}` | `eip1271-chainId-${number}`; // a successfully collected Caip222-style signature. `0x${string}` indicates an ordinary signature. `eip1271-chainId-${number}` indicates a smart contract wallet verified the message using eip1271 verification via a isValidSignature call on the provided chainId;
         message: {
             senderAddress: `0x${string}`;
         };

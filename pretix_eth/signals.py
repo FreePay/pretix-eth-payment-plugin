@@ -35,7 +35,8 @@ def signal_process_response(sender, request, response, **kwargs):
             "https://fonts.gstatic.com"
         ],
         'frame-src': [
-            'https://staging.3cities.xyz',  # TODO source this 3cities origin dynamically from plugin config
+            'https://3cities.xyz', # TODO source this 3cities origin dynamically from plugin config
+            'https://staging.3cities.xyz',
         ],
         'connect-src': [
         ],

@@ -23,13 +23,6 @@ This is an Ethereum payment plugin for [pretix](https://github.com/pretix/pretix
 1. Under the event, go to Settings -> Plugins -> Payment Providers -> click on Enable under "Pretix Ethereum Payment Provider" 
 2. Next, under Settings, go to Payments -> "Pay on Ethereum" -> Settings -> click on "enable payment method". 
 3. Next, scroll down and set the values for the following:
-  - "TOKEN_RATE" - This is a JSON e.g. 
-    ```
-    "{\"ETH_RATE\": 4000, \"DAI_RATE\": 1}"
-    ```
-    i.e. `KEY` = `<CRYPTO_SMBOL>_RATE` and `VALUE` = value of 1 unit in your fiat currency e.g. USD, EUR etc. For USD, above example says 1 ETH = 4000$. If EUR was chosen, then this says 1 ETH = 4000EUR.
-
-    Note that the Ethereum rate will automatically reflect the current market price (regardless of which ETH_RATE you put in the config) - the ETH_RATE you define here is a fallback in the unlikely scenario that the plugin price feeds are down. The ETH_RATE will ONLY automatically reflect the current market price when Event Currency is set to either USD or EUR. If you set your event currency to ANYTHING ELSE the ETH rate will not automatically reflect its market price - it must then be manually input & updated regularly.
   - "Payment receiver address" - Ethereum address at which all payments will be sent to
 
 You can now play with the event by clicking on the "Go to Shop" button at the top left (next to the event name)
