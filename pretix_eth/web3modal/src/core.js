@@ -142,7 +142,7 @@ async function submitPaymentDetailsToServer(paymentDetails) {
     */
 
     async function _submitPaymentDetailsToServer(paymentDetails) {
-        const csrf_cookie = getCookie('pretix_csrftoken');
+        const csrf_cookie = getCookie('pretix_csrftoken') || getCookie('__Host-pretix_csrftoken'); // in devserver builds, pretix provides pretix_csrftoken without the __Host- pretix
         const url = getTransactionDetailsURL();
         const searchParams = new URLSearchParams({
             csrfmiddlewaretoken: csrf_cookie,
@@ -155,10 +155,10 @@ async function submitPaymentDetailsToServer(paymentDetails) {
         const params = {
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded",
-                'X-CSRF-TOKEN': csrf_cookie,
-                'HTTP-X-CSRFTOKEN': csrf_cookie,
+                'X-CSRFToken': csrf_cookie,
             },
             method: 'POST',
+            mode: 'same-origin',
             body: searchParams,
         };
         console.log("hey guys", { // TODO rm
@@ -175,7 +175,7 @@ async function submitPaymentDetailsToServer(paymentDetails) {
             } else {
                 showError(`There was an error processing your payment, please contact support. Your payment was sent in transaction ${paymentDetails.transactionHash} on chainId ${paymentDetails.chainId}.`, false);
             }
-        })
+        });
     }
     try {
         await _submitPaymentDetailsToServer(paymentDetails);
