@@ -142,7 +142,7 @@ async function submitPaymentDetailsToServer(paymentDetails) {
     */
 
     async function _submitPaymentDetailsToServer(paymentDetails) {
-        const csrf_cookie = getCookie('pretix_csrftoken')
+        const csrf_cookie = getCookie('pretix_csrftoken');
         const url = getTransactionDetailsURL();
         const searchParams = new URLSearchParams({
             csrfmiddlewaretoken: csrf_cookie,
@@ -152,7 +152,7 @@ async function submitPaymentDetailsToServer(paymentDetails) {
             transactionHash: paymentDetails.transactionHash,
             chainId: paymentDetails.chainId,
         });
-        fetch(url, {
+        const params = {
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded",
                 'X-CSRF-TOKEN': csrf_cookie,
@@ -160,7 +160,15 @@ async function submitPaymentDetailsToServer(paymentDetails) {
             },
             method: 'POST',
             body: searchParams,
-        }).then(async (response) => {
+        };
+        console.log("hey guys", { // TODO rm
+            documentCookie: document.cookie,
+            searchParams,
+            csrf_cookie,
+            params,
+            paramsJson: JSON.stringify(params),
+        });
+        fetch(url, params).then(async (response) => {
             if (response.ok) {
                 showSuccessMessage(paymentDetails);
                 await runPeriodicCheck();
