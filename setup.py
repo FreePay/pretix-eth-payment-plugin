@@ -53,7 +53,7 @@ setup(
     author_email='pretix-eth-payment-plugin@ethereum.org',
     license='Apache Software License',
     install_requires=[
-        "pretix>=2024.6.0",
+        "pretix>=2024.2.0",
         'importlib-metadata<3; python_version<"3.8"',
         "protobuf>=4.25.3",
         "grpcio>=1.62",
