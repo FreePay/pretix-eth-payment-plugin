@@ -13,7 +13,7 @@ import { runPeriodicCheck } from './periodic_check.js';
 
 // TODO doc
 let singleton3citiesIframeMessageEventHandler = undefined;
-function createOrUpdateSingleton3citiesIframeMessageEventHandler({ tcOrigin, onCheckout, onCloseIframe }) {
+function createOrUpdateSingleton3citiesIframeMessageEventHandler({ tcOrigin, onTransactionSigned, onCloseIframe }) {
     if (singleton3citiesIframeMessageEventHandler) {
         window.removeEventListener('message', singleton3citiesIframeMessageEventHandler, true);
         singleton3citiesIframeMessageEventHandler = undefined;
@@ -22,8 +22,11 @@ function createOrUpdateSingleton3citiesIframeMessageEventHandler({ tcOrigin, onC
     singleton3citiesIframeMessageEventHandler = (event) => {
         if (event.origin === tcOrigin) { // WARNING this is a crucial security check to ensure that this message has been sent from the expected 3cities iframe origin. Otherwise, any window can claim to be sending a message from 3cities
             if (event !== null && typeof event === 'object' && event.data !== null && typeof event.data === 'object') {
-                if (event.data.kind === 'Checkout') onCheckout(event.data);
+                if (event.data.kind === 'TransactionSigned') onTransactionSigned(event.data);
                 else if (event.data.kind === 'CloseIframe') onCloseIframe();
+                else if (event.data.kind === 'Checkout') {
+                    // no-op on Checkout event
+                }
                 else console.error("Unexpected kind of event from 3cities, kind=", event.data.kind);
             } else console.error("Unexpected event from 3cities", event);
         }
@@ -33,16 +36,17 @@ function createOrUpdateSingleton3citiesIframeMessageEventHandler({ tcOrigin, onC
 
 function make3citiesIframe({
     tcBaseUrl, // string. 3cities client base URL. TODO enumerate the checkout data that currently must be included in the base url vs. those supplied below as url params
+    receiverAddress, // string address `0x${string}`. Receiver address to which payment will be sent.
     paymentLogicalAssetAmountInUsd, // string. 18 decimal full precision US Dollar amount due for this payment. Ie. `$1 = (10**18).toString()`
     primaryCurrency, // string. Primary logical currency in which to denominate this payment ("USD", "ETH", etc). Currency must be supported by 3cities.
     usdPerEth, // string decimal number, eg. '4012.56'. USD/ETH rate to use for this payment. 3cities has its own internal exchange rates but they may be overridden, as we are doing here.
-    onCheckout, // callback to invoke on 3cities Checkout event. See below for signature type
+    onTransactionSigned, // callback to invoke on 3cities TransactionSigned event. See below for signature type
 }) {
     const tcIframeContainerId = "3cities-iframe-container";
 
     createOrUpdateSingleton3citiesIframeMessageEventHandler({
         tcOrigin: new URL(tcBaseUrl).origin,
-        onCheckout,
+        onTransactionSigned,
         onCloseIframe: () => { removeElementById(tcIframeContainerId); },
     })
 
@@ -62,8 +66,8 @@ function make3citiesIframe({
 
     const computedThreeCitiesUrl = (() => {
         // today, tcBaseUrl is expected to be of the form `#/?pay=...` ie. having synthetic URL parameters as part of the hash fragment. As a result, we can't use the browser URL API to append search parameters as this api isn't designed to recognize our synthetic search parameters in the hash fragment. Instead, we apply new search params using array-based string manipulation:
-        // TODO use paymentDetails['receipient_address'] to set &receiverAddressOrEns in 3cities. Perhaps defer this until also adding support for a distinct receiver address per chain
         const urlParts = [tcBaseUrl];
+        urlParts.push(`&receiverAddress=${encodeURIComponent(receiverAddress)}`);
         urlParts.push(`&amount=${encodeURIComponent(paymentLogicalAssetAmountInUsd)}`);
         urlParts.push(`&currency=${encodeURIComponent(primaryCurrency)}`);
         urlParts.push(`&usdPerEth=${encodeURIComponent(usdPerEth)}`);
@@ -110,10 +114,11 @@ async function makePayment() {
 
         make3citiesIframe({
             tcBaseUrl: 'https://3cities.xyz/#/pay?c=CAESFGdAb29187sroN7d8mdtO6b1XHAPIgICASoCARA6K0VUSCBVU0RUIExVU0QgUFlVU0QgR1VTRCBVU0RQIERBSSBVU0RDIFdFVEhKNQEKAQAKBAIBBgEKBQMEAwUCCgUJAQQECgcHBwcHBwcKCAQFAwoBAQABCggBBAUHCgMEBAQD', // this is a production payment link with baked in settings: single receiver address 0x67406f6F75F3Bb2bA0DeDdf2676D3bA6F55C700F; chain allowlist Ethereum Mainnet, OP Mainnet, Arbitrum One, Scroll, Linea, Zora, Base, Polygon zkEVM, Blast, Mode; TODO add zkSync Era after multi receiver address is implemented; ETH, WETH, USDC, USDT, DAI, LUSD, USDP, PYUSD, GUSD; TODO add USDGLO --> TODO pass chain/token allowlist and receiver address as URL params sourced from plugin config
+            receiverAddress: GlobalPretixEthState.paymentDetails['recipient_address'],
             paymentLogicalAssetAmountInUsd: GlobalPretixEthState.paymentDetails['amount'],
             primaryCurrency: GlobalPretixEthState.paymentDetails['primary_currency'],
             usdPerEth: GlobalPretixEthState.paymentDetails['usd_per_eth'],
-            onCheckout: submitPaymentDetailsToServer,
+            onTransactionSigned: submitPaymentDetailsToServer,
         });
     }
 
@@ -138,6 +143,7 @@ async function submitPaymentDetailsToServer(paymentDetails) {
         };
         transactionHash: string;
         chainId: number;
+        // ... more insecure fields for admin convenience
     }
     */
 
@@ -151,7 +157,17 @@ async function submitPaymentDetailsToServer(paymentDetails) {
             message: JSON.stringify(paymentDetails.caip222StyleMessageThatWasSigned),
             transactionHash: paymentDetails.transactionHash,
             chainId: paymentDetails.chainId,
+            tokenTicker: paymentDetails.tokenTicker,
+            tokenName: paymentDetails.tokenName,
+            tokenAmount: paymentDetails.tokenAmount,
+            tokenDecimals: paymentDetails.tokenDecimals,
         });
+        // Some fields may be undefined and if so should be excluded:
+        if (typeof paymentDetails.receiptUrl !== 'undefined') searchParams.append('receiptUrl', paymentDetails.receiptUrl);
+        if (typeof paymentDetails.tokenCurrency !== 'undefined') searchParams.append('tokenCurrency', paymentDetails.tokenCurrency);
+        if (typeof paymentDetails.tokenContractAddress !== 'undefined') searchParams.append('tokenContractAddress', paymentDetails.tokenContractAddress);
+        if (typeof paymentDetails.chainName !== 'undefined') searchParams.append('chainName', paymentDetails.chainName);
+        if (typeof paymentDetails.isTestnet !== 'undefined') searchParams.append('isTestnet', paymentDetails.isTestnet);
         const params = {
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded",
@@ -161,21 +177,26 @@ async function submitPaymentDetailsToServer(paymentDetails) {
             mode: 'same-origin',
             body: searchParams,
         };
-        console.log("hey guys", { // TODO rm
-            documentCookie: document.cookie,
-            searchParams,
-            csrf_cookie,
-            params,
-            paramsJson: JSON.stringify(params),
-        });
-        fetch(url, params).then(async (response) => {
-            if (response.ok) {
-                showSuccessMessage(paymentDetails);
-                await runPeriodicCheck();
-            } else {
-                showError(`There was an error processing your payment, please contact support. Your payment was sent in transaction ${paymentDetails.transactionHash} on chainId ${paymentDetails.chainId}.`, false);
+        fetchWithRetry(url, params);
+
+        async function fetchWithRetry(url, params, attempt = 1) {
+            const maxBackoff = 300000; // Maximum backoff time in milliseconds (5 minutes)
+            const backoff = Math.min(maxBackoff, Math.pow(2, attempt) * 1500); // Exponential backoff formula
+
+            try {
+                const response = await fetch(url, params);
+                if (response.ok) {
+                    showError(' ', false); // clear any error from previous attempts --> the non-empty string here is essential to avoid a default error message
+                    showSuccessMessage(paymentDetails);
+                    await runPeriodicCheck();
+                } else {
+                    throw new Error('Response not OK');
+                }
+            } catch (error) {
+                showError(`Do not close this window yet! There was an error processing your payment. We will re-try shortly. If this error does not go away, please contact support. Save these details: Your payment was sent in transaction ${paymentDetails.transactionHash} on ${paymentDetails.chainName} (chain ID ${paymentDetails.chainId}). Receipt link ${paymentDetails.receiptUrl}.`, false);
+                setTimeout(() => fetchWithRetry(url, params, attempt + 1), backoff);
             }
-        });
+        }
     }
     try {
         await _submitPaymentDetailsToServer(paymentDetails);

@@ -117,7 +117,7 @@ function displayOnlyId(divId) {
 
 function showSuccessMessage(paymentDetails) {
     GlobalPretixEthState.transactionHashSubmitted = true;
-    GlobalPretixEthState.elements.divTransactionHash.innerHTML = `${paymentDetails.transactionHash} (chain ID ${paymentDetails.chainId})`; // TODO final rendering of payment details. Can we show block explorer link passed from 3c here?
+    GlobalPretixEthState.elements.divTransactionHash.innerHTML = `${paymentDetails.transactionHash} on ${paymentDetails.chainName} (chain ID ${paymentDetails.chainId}) <a href="${paymentDetails.receiptUrl}" target="_blank">receipt</a>`;
     displayOnlyId();
     GlobalPretixEthState.elements.divSuccess.style.display = "block";
 }

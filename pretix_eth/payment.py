@@ -21,6 +21,7 @@ from pretix_eth.network.helpers import get_eth_price_from_external_apis
 
 logger = logging.getLogger(__name__)
 
+
 class Ethereum(BasePaymentProvider):
     identifier = "ethereum"
     verbose_name = _("Pay on Ethereum")
@@ -181,13 +182,22 @@ class Ethereum(BasePaymentProvider):
         latest_signed_message = payment.signed_messages.last()
 
         submitted_transaction_hash = None
+        chain_name = None
+        chain_id = None
+        receipt_url = None
         order_accepting_payments = True
 
         if latest_signed_message is not None:
             submitted_transaction_hash = latest_signed_message.transaction_hash
+            chain_name = latest_signed_message.chain_name
+            chain_id = latest_signed_message.chain_id
+            receipt_url = latest_signed_message.receipt_url
             order_accepting_payments = not latest_signed_message.another_signature_submitted
 
         ctx["submitted_transaction_hash"] = submitted_transaction_hash
+        ctx["chain_name"] = chain_name
+        ctx["chain_id"] = chain_id
+        ctx["receipt_url"] = receipt_url
         ctx["order_accepting_payments"] = order_accepting_payments
 
         return template.render(ctx, request)
@@ -205,10 +215,30 @@ class Ethereum(BasePaymentProvider):
             transaction_sender_address = last_signed_message.sender_address
             transaction_recipient_address = last_signed_message.recipient_address
             transaction_hash = last_signed_message.transaction_hash
+            chain_id = last_signed_message.chain_id
+            chain_name = last_signed_message.chain_name
+            receipt_url = last_signed_message.receipt_url
+            token_currency = last_signed_message.token_currency
+            token_ticker = last_signed_message.token_ticker
+            token_name = last_signed_message.token_name
+            token_amount = last_signed_message.token_amount
+            token_decimals = last_signed_message.token_decimals
+            token_contract_address = last_signed_message.token_contract_address
+            is_testnet = last_signed_message.is_testnet
         else:
             transaction_sender_address = None
             transaction_recipient_address = None
             transaction_hash = None
+            chain_id = None
+            chain_name = None
+            receipt_url = None
+            token_currency = None
+            token_ticker = None
+            token_name = None
+            token_amount = None
+            token_decimals = None
+            token_contract_address = None
+            is_testnet = None
 
         ctx = {
             "payment_info": payment.info_data,
@@ -216,6 +246,16 @@ class Ethereum(BasePaymentProvider):
             "transaction_sender_address": transaction_sender_address,
             "transaction_recipient_address": transaction_recipient_address,
             "transaction_hash": transaction_hash,
+            "chain_id": chain_id,
+            "chain_name": chain_name,
+            "receipt_url": receipt_url,
+            "token_currency": token_currency,
+            "token_ticker": token_ticker,
+            "token_name": token_name,
+            "token_amount": token_amount,
+            "token_decimals": token_decimals,
+            "token_contract_address": token_contract_address,
+            "is_testnet": is_testnet,
         }
 
         return template.render(ctx, request)

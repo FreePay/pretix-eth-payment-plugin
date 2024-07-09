@@ -36,11 +36,29 @@ def payment_to_row(payment):
         recipient_address = confirmed_transaction.recipient_address
         transaction_hash = confirmed_transaction.transaction_hash
         chain_id = confirmed_transaction.chain_id
+        chain_name = confirmed_transaction.chain_name
+        receipt_url = confirmed_transaction.receipt_url
+        token_currency = confirmed_transaction.token_currency
+        token_ticker = confirmed_transaction.token_ticker
+        token_name = confirmed_transaction.token_name
+        token_amount = confirmed_transaction.token_amount
+        token_decimals = confirmed_transaction.token_decimals
+        token_contract_address = confirmed_transaction.token_contract_address
+        is_testnet = confirmed_transaction.is_testnet
     else:
         sender_address = None
         recipient_address = None
         transaction_hash = None
         chain_id = None
+        chain_name = None
+        receipt_url = None
+        token_currency = None
+        token_ticker = None
+        token_name = None
+        token_amount = None
+        token_decimals = None
+        token_contract_address = None
+        is_testnet = None
 
     row = [
         "Payment",
@@ -56,7 +74,16 @@ def payment_to_row(payment):
         recipient_address,
         transaction_hash,
         chain_id,
+        chain_name,
         usd_per_eth,
+        receipt_url,
+        token_currency,
+        token_ticker,
+        token_name,
+        token_amount,
+        token_decimals,
+        token_contract_address,
+        is_testnet,
     ]
 
     return row
@@ -70,7 +97,8 @@ class EthereumOrdersExporter(ListExporter):
         'Type', 'Event slug', 'Order', 'Payment ID', 'Creation date',
         'Completion date', 'Status', 'Fiat Amount', 'Currency Type',
         'Sender address', 'Receiver address',
-        'Transaction Hash', 'Chain ID', 'Token Rate at time of order',
+        'Transaction Hash', 'Chain ID', 'Chain Name', 'Order USD/ETH Rate',
+        'Receipt URL', 'Token Currency', 'Token Ticker', 'Token Name', 'Token Amount', 'Token Decimals', 'Token Contract Address', 'Is Testnet'
     )
 
     @property

@@ -4,18 +4,39 @@
     <dl class="dl-horizontal">
         <dt>{% trans "Amount" %}</dt>
         <dd>{{ payment_info.amount }}</dd>
-        <dt>{% trans "Currency type" %}</dt>
+        <dt>{% trans "Event Currency" %}</dt>
         <dd>{{ payment_info.primary_currency }}</dd>
-        <dt>{% trans "USD/ETH rate" %}</dt>
+        <dt>{% trans "Order USD/ETH rate" %}</dt>
         <dd>{{ payment_info.usd_per_eth }}</dd>
-        <dt>{% trans "Expected Receiving Wallet Address" %}</dt>
+        <dt>{% trans "Current Receiver Address in Plugin Settings" %}</dt>
         <dd>{{ wallet_address }}</dd>
-        <dt>{% trans "Transaction Sender Address" %}</dt>
-        <dd>{{ transaction_sender_address }}</dd>
-        <dt>{% trans "Transaction Recipient Address" %}</dt>
+        <dt>{% trans "Order Receiver Address" %}</dt>
         <dd>{{ transaction_recipient_address }}</dd>
+        <dt>{% trans "Sender Address" %}</dt>
+        <dd>{{ transaction_sender_address }}</dd>
         <dt>{% trans "Transaction Hash" %}</dt>
         <dd>{{ transaction_hash }}</dd>
+        <dt>{% trans "Chain ID" %}</dt>
+        <dd>{{ chain_id|default_if_none:"" }}</dd>
+        <dt>{% trans "Chain Name" %}</dt>
+        <dd>{{ chain_name|default_if_none:"" }}</dd>
+        <dt>{% trans "Receipt URL" %}</dt>
+        <dd><a href="{{ receipt_url|default_if_none:" #" }}" target="_blank">{{ receipt_url|default_if_none:"" }}</a></dd>
+        <dt>{% trans "Token Currency" %}</dt>
+        <dd>{{ token_currency|default_if_none:"" }}</dd>
+        <dt>{% trans "Token Ticker" %}</dt>
+        <dd>{{ token_ticker|default_if_none:"" }}</dd>
+        <dt>{% trans "Token Name" %}</dt>
+        <dd>{{ token_name|default_if_none:"" }}</dd>
+        <dt>{% trans "Token Amount" %}</dt>
+        <dd>{{ token_amount|default_if_none:"" }}</dd>
+        <dt>{% trans "Token Decimals" %}</dt>
+        <dd>{{ token_decimals|default_if_none:"" }}</dd>
+        <dt>{% trans "Token Contract Address" %}</dt>
+        <dd>{{ token_contract_address|default_if_none:"native" }}</dd>
+        <dt>{% trans "Is Testnet" %}</dt>
+        <dd>{{ is_testnet|yesno:"Yes,No" }}</dd>
+
     </dl>
     {% if "message" in payment_info %}
         <dl class="dl-horizontal">

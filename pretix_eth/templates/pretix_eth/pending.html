@@ -30,13 +30,14 @@
 </script>
 
 <div>
-  <p>A payment for this order has already been submitted in transaction
-      <!-- TODO show block explorer link here instead of just the hash? and/or add chainId? -->
+  <p>A payment for this order has already been submitted. Transaction hash:
     <strong>
-      <span id="pretix-eth-submitted-transaction-hash"> <!-- WARNING run_periodic_check.js depends on this span existing if and only if the user has submitted a payment (ie. transaction hash) for this order -->
+      <span id="pretix-eth-submitted-transaction-hash">
+        <!-- WARNING run_periodic_check.js depends on this span existing if and only if the user has submitted a payment (ie. transaction hash) for this order -->
         {{ submitted_transaction_hash }}
       </span>
     </strong>
+    <br />on {{ chain_name }} (chain ID {{ chain_id }}) <a href="{{ receipt_url }}" target="_blank">receipt</a>
   </p>
 </div>
 {% endif %}
