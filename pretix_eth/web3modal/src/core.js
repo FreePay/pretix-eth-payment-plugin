@@ -113,7 +113,7 @@ async function makePayment() {
         // }
 
         make3citiesIframe({
-            tcBaseUrl: 'https://3cities.xyz/#/pay?c=CAESFGdAb29187sroN7d8mdtO6b1XHAPIgICASoCARA6K0VUSCBVU0RUIExVU0QgUFlVU0QgR1VTRCBVU0RQIERBSSBVU0RDIFdFVEhKNQEKAQAKBAIBBgEKBQMEAwUCCgUJAQQECgcHBwcHBwcKCAQFAwoBAQABCggBBAUHCgMEBAQD', // this is a production payment link with baked in settings: single receiver address 0x67406f6F75F3Bb2bA0DeDdf2676D3bA6F55C700F; chain allowlist Ethereum Mainnet, OP Mainnet, Arbitrum One, Scroll, Linea, Zora, Base, Polygon zkEVM, Blast, Mode; TODO add zkSync Era after multi receiver address is implemented; ETH, WETH, USDC, USDT, DAI, LUSD, USDP, PYUSD, GUSD; TODO add USDGLO --> TODO pass chain/token allowlist and receiver address as URL params sourced from plugin config
+            tcBaseUrl: 'https://3cities.xyz/#/pay?c=CAESFGdAb29187sroN7d8mdtO6b1XHAPIgICASoCARA6DEVUSCBXRVRIIERBSUo1AQoBAAoEAgEGAQoIBAUDCgUJAQQECgUDBAMFAgoDBAQEAwoIAQQFBwoBAQABCgcHBwcHBwc', // this is a production payment link with baked in settings: single receiver address 0x67406f6F75F3Bb2bA0DeDdf2676D3bA6F55C700F; chain allowlist Ethereum Mainnet, OP Mainnet, Arbitrum One, Scroll, Linea, Zora, Base, Polygon zkEVM, Blast, Mode; TODO add zkSync Era after multi receiver address is implemented and Taiko; ETH, WETH, DAI; TODO add USDC, USDT, LUSD, USDP, PYUSD, GUSD after legal approval; TODO add USDGLO to 3cities --> TODO pass chain/token allowlist as URL params sourced from plugin config
             receiverAddress: GlobalPretixEthState.paymentDetails['recipient_address'],
             paymentLogicalAssetAmountInUsd: GlobalPretixEthState.paymentDetails['amount'],
             primaryCurrency: GlobalPretixEthState.paymentDetails['primary_currency'],
