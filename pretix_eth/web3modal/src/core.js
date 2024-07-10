@@ -2,14 +2,11 @@
 
 import {
     GlobalPretixEthState,
-    getCookie,
     getPaymentTransactionData,
-    getTransactionDetailsURL,
     resetErrorMessage,
-    showError,
-    showSuccessMessage
+    showError
 } from './interface.js';
-import { runPeriodicCheck } from './periodic_check.js';
+import { addPendingTransactionDetails } from './transactionDetailsBuffer.js';
 
 // TODO doc
 let singleton3citiesIframeMessageEventHandler = undefined;
@@ -118,7 +115,7 @@ async function makePayment() {
             paymentLogicalAssetAmountInUsd: GlobalPretixEthState.paymentDetails['amount'],
             primaryCurrency: GlobalPretixEthState.paymentDetails['primary_currency'],
             usdPerEth: GlobalPretixEthState.paymentDetails['usd_per_eth'],
-            onTransactionSigned: submitPaymentDetailsToServer,
+            onTransactionSigned: scheduleTransactionDetailsForServerSubmission,
         });
     }
 
@@ -132,11 +129,11 @@ async function makePayment() {
     }
 }
 
-async function submitPaymentDetailsToServer(paymentDetails) {
+async function scheduleTransactionDetailsForServerSubmission(transactionDetailsFrom3cities) {
     /*
-    NB type of message sent from 3cities upon successful checkout:
+    NB type of message sent from 3cities upon transaction signed:
     {
-        kind: 'Checkout';
+        kind: 'TransactionSigned';
         signature: `0x${string}` | `eip1271-chainId-${number}`; // a successfully collected Caip222-style signature. `0x${string}` indicates an ordinary signature. `eip1271-chainId-${number}` indicates a smart contract wallet verified the message using eip1271 verification via a isValidSignature call on the provided chainId;
         message: {
             senderAddress: `0x${string}`;
@@ -147,61 +144,31 @@ async function submitPaymentDetailsToServer(paymentDetails) {
     }
     */
 
-    async function _submitPaymentDetailsToServer(paymentDetails) {
-        const csrf_cookie = getCookie('pretix_csrftoken') || getCookie('__Host-pretix_csrftoken'); // in devserver builds, pretix provides pretix_csrftoken without the __Host- pretix
-        const url = getTransactionDetailsURL();
-        const searchParams = new URLSearchParams({
-            csrfmiddlewaretoken: csrf_cookie,
-            senderAddress: paymentDetails.caip222StyleMessageThatWasSigned.senderAddress, // we extract senderAddress and send it separately because the backend wants senderAddress as structured data but the type of `message` is opaque to the backend (ie. the backend treats its received `message` as a blob)
-            signature: paymentDetails.caip222StyleSignature,
-            message: JSON.stringify(paymentDetails.caip222StyleMessageThatWasSigned),
-            transactionHash: paymentDetails.transactionHash,
-            chainId: paymentDetails.chainId,
-            tokenTicker: paymentDetails.tokenTicker,
-            tokenName: paymentDetails.tokenName,
-            tokenAmount: paymentDetails.tokenAmount,
-            tokenDecimals: paymentDetails.tokenDecimals,
-        });
-        // Some fields may be undefined and if so should be excluded:
-        if (typeof paymentDetails.receiptUrl !== 'undefined') searchParams.append('receiptUrl', paymentDetails.receiptUrl);
-        if (typeof paymentDetails.tokenCurrency !== 'undefined') searchParams.append('tokenCurrency', paymentDetails.tokenCurrency);
-        if (typeof paymentDetails.tokenContractAddress !== 'undefined') searchParams.append('tokenContractAddress', paymentDetails.tokenContractAddress);
-        if (typeof paymentDetails.chainName !== 'undefined') searchParams.append('chainName', paymentDetails.chainName);
-        if (typeof paymentDetails.isTestnet !== 'undefined') searchParams.append('isTestnet', paymentDetails.isTestnet);
-        const params = {
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-                'X-CSRFToken': csrf_cookie,
-            },
-            method: 'POST',
-            mode: 'same-origin',
-            body: searchParams,
-        };
-        fetchWithRetry(url, params);
+    const td = transactionDetailsFrom3cities;
+    const transactionDetailsUrlSearchParams = { // WARNING this object will be passed as a literal into the URLSearchParams constructor, so all values must be compatible with URLSearchParams
+        // NB `csrfmiddlewaretoken: csrf_cookie,` will be added later by submission algorithm
+        senderAddress: td.caip222StyleMessageThatWasSigned.senderAddress, // we extract senderAddress and send it separately because the backend wants senderAddress as structured data but the type of `message` is opaque to the backend (ie. the backend treats its received `message` as a blob)
+        signature: td.caip222StyleSignature,
+        message: JSON.stringify(td.caip222StyleMessageThatWasSigned),
+        transactionHash: td.transactionHash,
+        chainId: td.chainId,
+        tokenTicker: td.tokenTicker,
+        tokenName: td.tokenName,
+        tokenAmount: td.tokenAmount,
+        tokenDecimals: td.tokenDecimals,
+    };
+    const usp = transactionDetailsUrlSearchParams;
+    // Some fields may be undefined and if so should be excluded:
+    if (typeof td.receiptUrl !== 'undefined') usp.receiptUrl = td.receiptUrl;
+    if (typeof td.tokenCurrency !== 'undefined') usp.tokenCurrency = td.tokenCurrency;
+    if (typeof td.tokenContractAddress !== 'undefined') usp.tokenContractAddress = td.tokenContractAddress;
+    if (typeof td.chainName !== 'undefined') usp.chainName = td.chainName;
+    if (typeof td.isTestnet !== 'undefined') usp.isTestnet = td.isTestnet;
 
-        async function fetchWithRetry(url, params, attempt = 1) {
-            const maxBackoff = 300000; // Maximum backoff time in milliseconds (5 minutes)
-            const backoff = Math.min(maxBackoff, Math.pow(2, attempt) * 1500); // Exponential backoff formula
-
-            try {
-                const response = await fetch(url, params);
-                if (response.ok) {
-                    showError(' ', false); // clear any error from previous attempts --> the non-empty string here is essential to avoid a default error message
-                    showSuccessMessage(paymentDetails);
-                    await runPeriodicCheck();
-                } else {
-                    throw new Error('Response not OK');
-                }
-            } catch (error) {
-                showError(`Do not close this window yet! There was an error processing your payment. We will re-try shortly. If this error does not go away, please contact support. Save these details: Your payment was sent in transaction ${paymentDetails.transactionHash} on ${paymentDetails.chainName} (chain ID ${paymentDetails.chainId}). Receipt link ${paymentDetails.receiptUrl}.`, false);
-                setTimeout(() => fetchWithRetry(url, params, attempt + 1), backoff);
-            }
-        }
-    }
     try {
-        await _submitPaymentDetailsToServer(paymentDetails);
+        await addPendingTransactionDetails({ transactionDetailsUrlSearchParams: usp });
     } catch (error) {
-        showError(error, true);
+        showError(`!!! Critical error: payment was sent but details were lost. Please email these details to support: ${JSON.stringify(usp)} Error: ${error}`, true);
     }
 }
 
