@@ -110,7 +110,7 @@ async function makePayment() {
         // }
 
         make3citiesIframe({
-            tcBaseUrl: 'https://3cities.xyz/#/pay?c=CAESFGdAb29187sroN7d8mdtO6b1XHAPIgICASoCARA6DEVUSCBXRVRIIERBSUowAQoBAAoEAgEGAQoIBAUDCgUDBAMFAgoHBwcHBwcHCgUJAQQECggBBAUHCgMEBAQD', // this is a production payment link with baked in settings: single receiver address 0x67406f6F75F3Bb2bA0DeDdf2676D3bA6F55C700F; chain allowlist: Ethereum Mainnet, OP Mainnet, Arbitrum One, Scroll, Linea, Zora, Base, Blast, Mode; TODO add zkSync Era after multi receiver address is implemented and Taiko; TODO add Polygon zkEVM after the payment bugs on it are fixed; token allowlist: ETH, WETH, DAI; TODO add USDC, USDT, LUSD, USDP, PYUSD, GUSD after legal approval; TODO add USDGLO to 3cities --> TODO pass chain/token allowlist as URL params sourced from plugin config
+            tcBaseUrl: 'https://3cities.xyz/#/pay?c=CAESFKwNd1PqKBZQG1f66a1mVzkBg4SzIgICASoCARA6DEVUSCBXRVRIIERBSUowAQoBAAoEAgEGAQoIBAUDCgUDBAMFAgoHBwcHBwcHCgUJAQQECggBBAUHCgMEBAQDWinwn6eQIEtlZXAgdGhpcyBwb3AtdXAgb3BlbiBkdXJpbmcgc2lnbmluZw', // this is a production payment link with baked in settings: single receiver address 0x67406f6F75F3Bb2bA0DeDdf2676D3bA6F55C700F; chain allowlist: Ethereum Mainnet, OP Mainnet, Arbitrum One, Scroll, Linea, Zora, Base, Blast, Mode; TODO add zkSync Era after multi receiver address is implemented and Taiko; TODO add Polygon zkEVM after the payment bugs on it are fixed; token allowlist: ETH, WETH, DAI; TODO add USDC, USDT, LUSD, USDP, PYUSD, GUSD after legal approval; TODO add USDGLO to 3cities --> TODO pass chain/token allowlist as URL params sourced from plugin config
             receiverAddress: GlobalPretixEthState.paymentDetails['recipient_address'],
             paymentLogicalAssetAmountInUsd: GlobalPretixEthState.paymentDetails['amount'],
             primaryCurrency: GlobalPretixEthState.paymentDetails['primary_currency'],
@@ -168,7 +168,7 @@ async function scheduleTransactionDetailsForServerSubmission(transactionDetailsF
     try {
         await addPendingTransactionDetails({ transactionDetailsUrlSearchParams: usp });
     } catch (error) {
-        showError(`!!! Critical error: payment was sent but details were lost. Please email these details to support: ${JSON.stringify(usp)} Error: ${error}`, true);
+        showError(`🚨🚨🚨🚨🚨🚨 Critical error: payment was sent but details were lost. Please email these details to support: ${JSON.stringify(usp)} Error: ${error}`, true);
     }
 }
 

@@ -89,7 +89,11 @@ export async function monitorAndSubmitPendingTransactionDetails(attempt = 1) {
           throw new Error('transaction details submission fetch response not OK');
         }
       } catch (error) {
-        showError(`Do not close this window yet! There was an error processing your payment. We will re-try shortly. If this error does not go away, please contact support. Save these details: Your payment was sent in transaction ${txDetailsToSubmit.transactionHash} on ${txDetailsToSubmit.chainName} (chain ID ${txDetailsToSubmit.chainId}). Receipt link ${txDetailsToSubmit.receiptUrl}.`, false);
+        (() => { // pending transaction details were detected for this page's order ID, so paying again would result in a duplicate payment, and submitting these pending details to the server had an error, so we must hide the pay button to prevent duplicate payments. NB the pay button is hidden by another mechanism if pending details server submission is successful, so here we only worry about hiding the button iff pending tx details for this order ID exist but submission failed
+          const payBtn = document.getElementById("btn-pay");
+          if (payBtn) payBtn.style.display = 'none';
+        })();
+        showError(`🚨🚨🚨 Do not close this window yet! There was an error processing your payment. We will re-try shortly. If this error does not go away, please contact support. Save these details: Your payment was sent in transaction ${txDetailsToSubmit.transactionHash} on ${txDetailsToSubmit.chainName} (chain ID ${txDetailsToSubmit.chainId}). Receipt link ${txDetailsToSubmit.receiptUrl}.`, false);
         nextAttempt = attempt + 1; // submission POST failed, so we will retry with exponential backoff, where exponential backoff is enabled by incrementing current attempt count
       }
     }
