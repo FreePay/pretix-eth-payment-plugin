@@ -35,7 +35,9 @@ def signal_process_response(sender, request, response, **kwargs):
             "https://fonts.gstatic.com"
         ],
         'frame-src': [
-            'https://3cities.xyz', # TODO source this 3cities origin dynamically from plugin config
+            # TODO use get_3cities_interface_domain to set frame-src dynamically instead of including all of 3cities.xyz, staging.3cities.xyz, and staging-prod3.cities.xyz
+            'https://3cities.xyz',
+            'https://staging-prod.3cities.xyz',
             'https://staging.3cities.xyz',
         ],
         'connect-src': [

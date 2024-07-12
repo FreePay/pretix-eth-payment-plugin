@@ -32,6 +32,7 @@ class TransactionDetailsSerializer(Serializer):
             "recipient_address": recipient_address,
             "is_signature_submitted": another_signature_submitted,
             # "has_other_unpaid_orders": None, # TODO rm? see related note in views.py
+            "3cities_interface_domain": instance.payment_provider.get_3cities_interface_domain(),
         }
 
 

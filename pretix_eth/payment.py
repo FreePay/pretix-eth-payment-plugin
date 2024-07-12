@@ -2,8 +2,6 @@ import logging
 import time
 from collections import OrderedDict
 
-from json import JSONDecoder, loads, JSONDecodeError
-
 from django import forms
 from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpRequest
@@ -41,6 +39,23 @@ class Ethereum(BasePaymentProvider):
                         help_text=_("Caution: Must work on all networks configured.")
                     )
                 ),
+                (
+                    "THREECITIES_ENV",
+                    forms.ChoiceField(
+                        choices=[
+                            ('PRODUCTION', _(
+                                "Production - use 3cities production environment. Ie. the production interface and mainnet chains (3cities.xyz).")),
+                            ('PRODUCTION_TEST', _(
+                                "Production Test - use 3cities production test environment. Ie. the test interface and mainnet chains (staging-prod.3cities.xyz).")),
+                            ('TEST', _("Test - use 3cities test environment. Ie. the test interface and testnet chains (staging.3cities.xyz)."))
+                        ],
+                        label=_("3cities environment:"),
+                        help_text=_(
+                            "Choose between 3cities production, production test, and test environments. WARNING - must be set to Production when selling real tickets"),
+                        widget=forms.RadioSelect,
+                        initial='PRODUCTION'
+                    )
+                ),
                 # TODO PAYMENT_NOT_RECIEVED_RETRY_TIMEOUT is no longer used. Should it be used again or removed?
                 # (
                 #     "PAYMENT_NOT_RECIEVED_RETRY_TIMEOUT",
@@ -61,6 +76,21 @@ class Ethereum(BasePaymentProvider):
 
     def get_receiving_address(self):
         return self.settings.SINGLE_RECEIVER_ADDRESS
+
+    def get_3cities_env(self):
+        return self.settings.THREECITIES_ENV
+
+    def get_3cities_interface_domain(self):
+        threecities_env_to_domain = {
+            'PRODUCTION': '3cities.xyz',
+            'PRODUCTION_TEST': 'staging-prod.3cities.xyz',
+            'TEST': 'staging.3cities.xyz'
+        }
+        threecities_env = self.get_3cities_env()
+        threecities_domain = threecities_env_to_domain.get(
+            threecities_env, threecities_env_to_domain['PRODUCTION'])
+
+        return threecities_domain
 
     def is_allowed(self, request, **kwargs):
         is_event_currency_supported = self.event.currency == "USD"  # TODO support EUR payments
