@@ -1,55 +1,63 @@
+import logging
 import subprocess
 import os
-import sys
 import grpc
 
-from threecities.v1.verifier_pb2 import SayRequest
-from threecities.v1.verifier_pb2_grpc import VerifierServiceStub
+from threecities.v1.transfer_verification_pb2_grpc import TransferVerificationServiceStub
 
-# get_grpc_ca_root_cert_file_path returns the file path of the
-# additional CA certificate required to verify our self-signed
-# certificate to run grpc with SSL. grpc requires SSL, even over
-# localhost. Our strategy to satisfy this requirement is to follow the
-# instructions here
-# https://connectrpc.com/docs/node/getting-started/#use-the-grpc-protocol-instead-of-the-connect-protocol,
-# which are roughly 1. one-time setup to create a self-signed
-# certificate via `mkcert` and install it in the local CA root, 2. tell
-# the python grpc client where to find the additional CA root
-# certificate so that our self-signed certificate is verifiable. There
-# are three ways to tell python where to find the addition CA root
-# certificate: (i) run `mkcert -CAROOT` in a subshell, (ii) provide the
-# env THREECITIES_GRPC_CA_ROOT_CERT="$(mkcert -CAROOT)/rootCA.pem", or
-# (iii) set GRPC_DEFAULT_SSL_ROOTS_FILE_PATH="$(mkcert
-# -CAROOT)/rootCA.pem"
-# https://grpc.github.io/grpc/cpp/grpc__security__constants_8h.html#a48565da473b7c82fa2453798f620fd59
-# --> we implement (i) and (ii) here.
+logger = logging.getLogger(__name__)
+
+
 def get_grpc_ca_root_cert_file_path():
-    # Try to execute the subshell command and get the path
     try:
-        # Run the mkcert command and capture the output
         completed_process = subprocess.run(
             ["mkcert", "-CAROOT"], capture_output=True, check=True, text=True)
         ca_root_path = completed_process.stdout.strip()
-        grpc_ca_root_cert_file_path = os.path.join(ca_root_path, "rootCA.pem")
-    except subprocess.CalledProcessError:
-        # If the subshell command fails, fall back to the environment variable
-        grpc_ca_root_cert_file_path = os.getenv("THREECITIES_GRPC_CA_ROOT_CERT")
+        return os.path.join(ca_root_path, "rootCA.pem")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"error obtaining CA root path: {e}")
+        return os.getenv("THREECITIES_GRPC_CA_ROOT_CERT") or None
 
-    # If neither method provides a path, exit with a fatal error
-    if not grpc_ca_root_cert_file_path:
-        sys.exit("Fatal Error: Could not determine gRPC CA root cert file path.")
 
-    return grpc_ca_root_cert_file_path
+grpc_stub = None
 
-grpc_ca_root_cert_file_path = get_grpc_ca_root_cert_file_path()
 
-with open(grpc_ca_root_cert_file_path, 'rb') as f:
-    root_cert = f.read()
-channel_credentials = grpc.ssl_channel_credentials(root_cert)
-channel = grpc.secure_channel("127.0.0.1:8443", channel_credentials) # TODO configurable grpc endpoint
-stub = VerifierServiceStub(channel)
+def ensure_grpc_initialized():
+    global grpc_stub
+    if grpc_stub is not None:
+        return
 
-def verify_payment(): # TODO real request type and implementation
-    say_response = stub.Say(SayRequest(sentence="Hello there!"))
-    print("grpc server stub response: " + say_response.sentence)
-    return True # TODO real response type
+    ca_cert_path = get_grpc_ca_root_cert_file_path()
+    if not ca_cert_path:
+        logger.error("grpc init failed: CA root cert file path not found")
+        return
+
+    try:
+        with open(ca_cert_path, 'rb') as f:
+            root_cert = f.read()
+        channel_credentials = grpc.ssl_channel_credentials(root_cert)
+        channel = grpc.secure_channel("127.0.0.1:8443", channel_credentials)
+        grpc_stub = TransferVerificationServiceStub(channel)
+    except Exception as e:
+        logger.error(f"failed to initialize grpc channel or stub: {e}")
+
+
+# verify_payment synchronously calls the remote 3cities grpc service to
+# attempt to verify the passed
+# threecities.v1.transfer_verification_pb2.TransferVerificationRequest.
+# Returns True if and only if the payment was successfully verified.
+def verify_payment(req):
+    is_verified = False
+    ensure_grpc_initialized()
+    if not grpc_stub:
+        logger.error("grpc stub unavailable, payment verification cannot proceed")
+    else:
+        try:
+            resp = grpc_stub.TransferVerification(req)
+            logger.info(f"{resp.description} {resp.error}")
+            if resp.is_verified:
+                is_verified = True
+        except grpc.RpcError as e:
+            logger.error(f"grpc call failed: {e}")
+
+    return is_verified
