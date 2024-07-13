@@ -9,14 +9,17 @@ logger = logging.getLogger(__name__)
 
 
 def get_grpc_ca_root_cert_file_path():
+    grpc_ca_root_cert_file_path = os.getenv("THREECITIES_GRPC_CA_ROOT_CERT")
+    if grpc_ca_root_cert_file_path:
+        return grpc_ca_root_cert_file_path
     try:
         completed_process = subprocess.run(
             ["mkcert", "-CAROOT"], capture_output=True, check=True, text=True)
         ca_root_path = completed_process.stdout.strip()
         return os.path.join(ca_root_path, "rootCA.pem")
     except subprocess.CalledProcessError as e:
-        logger.error(f"error obtaining CA root path: {e}")
-        return os.getenv("THREECITIES_GRPC_CA_ROOT_CERT") or None
+        logger.error(f"Error obtaining CA root path: {e}")
+        return None
 
 
 grpc_stub = None
