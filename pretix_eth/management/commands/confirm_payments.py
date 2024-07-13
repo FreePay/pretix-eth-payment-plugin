@@ -95,7 +95,7 @@ class Command(BaseCommand):
                         if is_verified:
                             payment_verified = True
                     except Exception as e:
-                        logger.error(f"Error verifying payment for order: {order_payment}")
+                        logger.error(f"Error verifying payment for order: {order_payment} error: {str(e)}")
 
                     if payment_verified:
                         if no_dry_run:
