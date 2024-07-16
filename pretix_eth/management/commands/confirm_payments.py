@@ -1,8 +1,7 @@
 import logging
 
-from django.core.management.base import (
-    BaseCommand,
-)
+from django.core.management.base import BaseCommand
+
 from django_scopes import scope
 
 from pretix.base.models import OrderPayment
@@ -27,20 +26,32 @@ class Command(BaseCommand):
             help="Modify database records to confirm payments.",
             action="store_true",
         )
+        parser.add_argument(
+            '--event-slug',
+            help=(
+                'The slug of the event for which payments should be confirmed.  '
+                'This is used to determine the wallet address to check for '
+                'payments. Default: all events.'
+            ),
+        )
 
     def handle(self, *args, **options):
         no_dry_run = options["no_dry_run"]
+        event_slug = options["event_slug"]
         log_verbosity = int(options.get("verbosity", 0))
 
         with scope(organizer=None):
             # todo change to events where pending payments are expected only?
             events = Event.objects.all()
+            if event_slug is not None:
+                events = events.filter(slug=event_slug)
 
         for event in events:
-            self.confirm_payments_for_event(event, no_dry_run, log_verbosity)
+            self.confirm_payments_for_event(event, no_dry_run, log_verbosity, event_slug)
 
-    def confirm_payments_for_event(self, event: Event, no_dry_run, log_verbosity=0):
-        logger.info(f"Event name - {event.name}")
+    def confirm_payments_for_event(self, event: Event, no_dry_run, log_verbosity=0, event_slug=None):
+        if not event_slug:
+            logger.info(f"Event name - {event.name}")
 
         with scope(organizer=event.organizer):
             unconfirmed_order_payments = OrderPayment.objects.filter(
