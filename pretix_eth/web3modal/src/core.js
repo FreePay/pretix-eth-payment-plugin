@@ -77,6 +77,7 @@ function make3citiesIframe({
     };
     const clickToCloseIframeLabel = 'Return to Ticket Shop'; // If this is defined as a string, upon successful checkout, 3cities will present the user with a button to close the iframe, and this button's label will be this string value. If undefined, 3cities's default behavior upon successful checkout is to show a QR code with the payment receipt, and the user can still close the iframe by clicking the X in the corner or anywhere outside the iframe. Note that iframes can't close themselves, see CloseIframe handler here.
     const requireNativeTokenTransferProxy = true; // iff this is true, 3cities will route any native token transfers through a proxy that emits an ERC20-compliant Transfer event. This must be true for the offchain verifier to detect and successfully verify ETH payments
+    const hideReceiverAddress = true; // iff this is true, 3cities will not display the payment recevier address. We hide the payment receiver address because some power users try to copy it to clipboard and send tokens manually in their wallet, which breaks the checkout because the modal must be used for iframe message passing to submit payment details to the server
     // END - mock 3cities options to later be migrated to SDK
 
     const computedThreeCitiesUrl = (() => {
@@ -94,6 +95,7 @@ function make3citiesIframe({
         }
         if (clickToCloseIframeLabel) urlParts.push(`&clickToCloseIframeLabel=${encodeURIComponent(clickToCloseIframeLabel)}`);
         if (requireNativeTokenTransferProxy) urlParts.push('&requireNativeTokenTransferProxy=1');
+        if (hideReceiverAddress) urlParts.push('&hideReceiverAddress=1');
         const url = urlParts.join('');
         return url;
     })();
