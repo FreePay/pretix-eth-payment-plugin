@@ -48,19 +48,19 @@ def ensure_grpc_initialized():
 # verify_payment synchronously calls the remote 3cities grpc service to
 # attempt to verify the passed
 # threecities.v1.transfer_verification_pb2.TransferVerificationRequest.
-# Returns True if and only if the payment was successfully verified.
+# Returns
+# threecities.v1.transfer_verification_pb2.TransferVerificationResponse.
+# Verification was successful if and only if response.is_verified.
 def verify_payment(req):
-    is_verified = False
+    resp = None
     ensure_grpc_initialized()
     if not grpc_stub:
         logger.error("grpc stub unavailable, payment verification cannot proceed")
     else:
         try:
             resp = grpc_stub.TransferVerification(req)
-            logger.info(f"{resp.description} {resp.error}")
-            if resp.is_verified:
-                is_verified = True
+            logger.info(f"{resp.external_id} {resp.description} {resp.error}")
         except grpc.RpcError as e:
-            logger.error(f"grpc call failed: {e}")
+            logger.error(f"grpc call failed. ${req.external_id} {e}")
 
-    return is_verified
+    return resp

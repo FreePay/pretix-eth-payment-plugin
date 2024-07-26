@@ -12,8 +12,10 @@ from pretix_eth.models import SignedMessage
 
 import pytz
 
+
 def date_to_string(time_zone, date):
     return date.astimezone(time_zone).date().strftime('%Y-%m-%d')
+
 
 def payment_to_row(payment):
     time_zone = pytz.timezone(payment.order.event.settings.timezone)
@@ -32,6 +34,8 @@ def payment_to_row(payment):
         confirmed_transaction: SignedMessage = payment.signed_messages.last()
 
     if confirmed_transaction is not None:
+        verification_failed_permanently = confirmed_transaction.verification_failed_permanently
+        verification_explanation = confirmed_transaction.verification_explanation
         sender_address = confirmed_transaction.sender_address
         recipient_address = confirmed_transaction.recipient_address
         transaction_hash = confirmed_transaction.transaction_hash
@@ -46,6 +50,8 @@ def payment_to_row(payment):
         token_contract_address = confirmed_transaction.token_contract_address
         is_testnet = confirmed_transaction.is_testnet
     else:
+        verification_failed_permanently = None
+        verification_explanation = None
         sender_address = None
         recipient_address = None
         transaction_hash = None
@@ -68,6 +74,8 @@ def payment_to_row(payment):
         date_to_string(time_zone, payment.created),
         completion_date,
         payment.state,
+        verification_failed_permanently,
+        verification_explanation,
         fiat_amount,
         primary_currency,
         sender_address,
@@ -95,7 +103,7 @@ class EthereumOrdersExporter(ListExporter):
 
     headers = (
         'Type', 'Event slug', 'Order', 'Payment ID', 'Creation date',
-        'Completion date', 'Status', 'Fiat Amount', 'Currency Type',
+        'Completion date', 'Status', 'Verification Failed Permanently', 'Verification Explanation', 'Fiat Amount', 'Currency Type',
         'Sender address', 'Receiver address',
         'Transaction Hash', 'Chain ID', 'Chain Name', 'Order USD/ETH Rate',
         'Receipt URL', 'Token Currency', 'Token Ticker', 'Token Name', 'Token Amount', 'Token Decimals', 'Token Contract Address', 'Is Testnet'

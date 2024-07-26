@@ -47,7 +47,8 @@ class Ethereum(BasePaymentProvider):
                                 "Production - use 3cities production environment. Ie. the production interface and mainnet chains (3cities.xyz).")),
                             ('PRODUCTION_TEST', _(
                                 "Production Test - use 3cities production test environment. Ie. the test interface and mainnet chains (staging-prod.3cities.xyz).")),
-                            ('TEST', _("Test - use 3cities test environment. Ie. the test interface and testnet chains (staging.3cities.xyz)."))
+                            ('TEST', _(
+                                "Test - use 3cities test environment. Ie. the test interface and testnet chains (staging.3cities.xyz)."))
                         ],
                         label=_("3cities environment:"),
                         help_text=_(
@@ -242,6 +243,8 @@ class Ethereum(BasePaymentProvider):
         last_signed_message: SignedMessage = payment.signed_messages.last()
 
         if last_signed_message is not None:
+            verification_failed_permanently = last_signed_message.verification_failed_permanently
+            verification_explanation = last_signed_message.verification_explanation
             transaction_sender_address = last_signed_message.sender_address
             transaction_recipient_address = last_signed_message.recipient_address
             transaction_hash = last_signed_message.transaction_hash
@@ -256,6 +259,8 @@ class Ethereum(BasePaymentProvider):
             token_contract_address = last_signed_message.token_contract_address
             is_testnet = last_signed_message.is_testnet
         else:
+            verification_failed_permanently = None
+            verification_explanation = None
             transaction_sender_address = None
             transaction_recipient_address = None
             transaction_hash = None
@@ -273,6 +278,8 @@ class Ethereum(BasePaymentProvider):
         ctx = {
             "payment_info": payment.info_data,
             "wallet_address": hex_wallet_address,
+            "verification_failed_permanently": verification_failed_permanently,
+            "verification_explanation": verification_explanation,
             "transaction_sender_address": transaction_sender_address,
             "transaction_recipient_address": transaction_recipient_address,
             "transaction_hash": transaction_hash,

@@ -2,6 +2,12 @@
 
 {% if payment_info %}
     <dl class="dl-horizontal">
+        {% if verification_failed_permanently %}
+            <dt><strong>{% trans "Verification Failed Permanently" %}</strong></dt>
+            <dd></dd>
+        {% endif %}
+        <dt>{% trans "Verification note" %}</dt>
+        <dd>{{ verification_explanation }}</dd>
         <dt>{% trans "Amount" %}</dt>
         <dd>{{ payment_info.amount }}</dd>
         <dt>{% trans "Event Currency" %}</dt>

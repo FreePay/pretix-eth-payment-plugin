@@ -26,6 +26,8 @@ class SignedMessage(models.Model):
     token_decimals = models.IntegerField(null=True, default=None) # number of decimals used by the transferred token. Insecure and untrusted. Provided by user's browser for admin convenience.
     token_contract_address = models.TextField(null=True, default=None) # contract address of the transferred token. Undefined if transfer was a native currency.  Insecure and untrusted. Provided by user's browser for admin convenience.
     chain_name = models.TextField(null=True, default=None) # Name of chain on which token transfer occurred.  Insecure and untrusted. Provided by user's browser for admin convenience.
+    verification_explanation = models.TextField(null=True, default=None) # an explanation of how the transaction verification attempt went, provided by the 3cities verifier. Only for admin convenience purposes.
+    verification_failed_permanently = models.BooleanField(null=True, default=None) # True if and only if verification for this transaction failed permanently and should not be retried. Must be unset if is_confirmed = true
     is_testnet = models.BooleanField(null=True, default=None) # True if and only if this token transfer occurred on a testnet chain (and is therefore fake money).  Insecure and untrusted. Provided by user's browser for admin convenience.
     order_payment = models.ForeignKey(
         to=OrderPayment,

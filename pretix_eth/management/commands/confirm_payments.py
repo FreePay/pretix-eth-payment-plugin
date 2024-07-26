@@ -41,7 +41,6 @@ class Command(BaseCommand):
         log_verbosity = int(options.get("verbosity", 0))
 
         with scope(organizer=None):
-            # todo change to events where pending payments are expected only?
             events = Event.objects.all()
             if event_slug is not None:
                 events = events.filter(slug=event_slug)
@@ -71,14 +70,16 @@ class Command(BaseCommand):
 
         for order_payment in unconfirmed_order_payments:
             try:
-                if log_verbosity > 0 and order_payment.state != OrderPayment.PAYMENT_STATE_CANCELED and order_payment.signed_messages.all().count() > 0:
+                if (log_verbosity > 0
+                    and order_payment.state != OrderPayment.PAYMENT_STATE_CANCELED
+                        and sum(1 for sm in order_payment.signed_messages.all() if not sm.verification_failed_permanently) > 0):
                     logger.info(
                         f" * trying to confirm payment: {order_payment} "
                         f"(has {order_payment.signed_messages.all().count()} signed messages)"
                     )
                 # it is tempting to put .filter(invalid=False) here, but remember
                 # there is still a chance that low-gas txs are mined later on.
-                for signed_message in order_payment.signed_messages.all():
+                for signed_message in [sm for sm in order_payment.signed_messages.all() if not sm.verification_failed_permanently]:
                     full_id = order_payment.full_id
                     payment_verified = False
                     try:
@@ -90,6 +91,7 @@ class Command(BaseCommand):
                                 token_ticker_allowlist=["ETH", "WETH", "DAI"],
                                 usd_per_eth=order_payment.info_data.get('usd_per_eth'),
                                 receiver_address=signed_message.recipient_address,  # WARNING recipient_address is only trusted field set from plugin config in SignedMessage. TODO consider converting recipient_address in SignedMessage to be untrusted and set this request value from a trusted receiver_address saved into info_data like all other trusted fields
+                                external_id=full_id,
                             ),
                             untrusted_to_be_verified=transfer_verification_pb2.TransferVerificationRequest.UntrustedData(
                                 chain_id=signed_message.chain_id,
@@ -102,11 +104,18 @@ class Command(BaseCommand):
                             )
                         )
 
-                        is_verified = verify_payment(transfer_verification_request)
-                        if is_verified:
-                            payment_verified = True
+                        resp = verify_payment(transfer_verification_request)
+                        if resp is not None:
+                            if resp.is_verified:
+                                payment_verified = True
+                            if no_dry_run:
+                                if resp.verification_failed_permanently:
+                                    signed_message.verification_failed_permanently = True
+                                signed_message.verification_explanation = resp.description
+                                signed_message.save()
                     except Exception as e:
-                        logger.error(f"Error verifying payment for order: {order_payment} error: {str(e)}")
+                        logger.error(
+                            f"Error verifying payment for order: {order_payment} error: {str(e)}")
 
                     if payment_verified:
                         if no_dry_run:
