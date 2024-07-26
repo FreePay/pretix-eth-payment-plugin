@@ -1,21 +1,9 @@
-import { runPeriodicCheck } from "./periodic_check.js";
 import {
     GlobalPretixEthState,
-    convertHashToExplorerLink
 } from "./interface.js";
+import { runPeriodicCheck } from "./periodic_check.js";
 
-window.addEventListener('load', async () => {
-    // run periodic status check if possible
-    const transaction_hash_el = GlobalPretixEthState.elements.submittedTransactionHash
-    if (transaction_hash_el !== null) {
-        /*
-        Page loads with transaction hash present,
-        this inidicates a reload in pending state.
-        We have to run periodic status change checker on page load.
-         */
-        const chain_id = GlobalPretixEthState.elements.aNetworkData.getAttribute("data-chain-id")
-        const hash = transaction_hash_el.innerText;
-        transaction_hash_el.innerHTML = convertHashToExplorerLink(chain_id, hash);
-        await runPeriodicCheck();
-    }
-});
+(() => { // attempt to begin running a listener to monitor for an existing unconfirmed payment to become confirmed. WARNING here we must not rely on `window.addEventListener('load')` as the load event may have already fired by the time this executes
+    const didUserSubmitAPaymentTransactionAlready = GlobalPretixEthState.elements.submittedTransactionHash !== null; // WARNING here we rely on this html element being defined if and only if the user already submitted a payment transaction for this order
+    if (didUserSubmitAPaymentTransactionAlready) runPeriodicCheck();
+})();

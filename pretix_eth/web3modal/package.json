@@ -1,5 +1,5 @@
 {
-  "name": "web3modal",
+  "name": "web3modal_todo_rename",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -10,9 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@wagmi/core": "1.4.13",
-    "@web3modal/wagmi1": "^4.0.0-544a28f1",
-    "viem": "1.21.4",
+    "localforage": "^1.10.0",
     "webpack": "^5.75.0"
   },
   "devDependencies": {

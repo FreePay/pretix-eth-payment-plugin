@@ -2,30 +2,47 @@
 
 {% if payment_info %}
     <dl class="dl-horizontal">
+        {% if verification_failed_permanently %}
+            <dt><strong>{% trans "Verification Failed Permanently" %}</strong></dt>
+            <dd></dd>
+        {% endif %}
+        <dt>{% trans "Verification note" %}</dt>
+        <dd>{{ verification_explanation }}</dd>
         <dt>{% trans "Amount" %}</dt>
         <dd>{{ payment_info.amount }}</dd>
-        <dt>{% trans "Currency type" %}</dt>
-        <dd>{{ payment_info.currency_type }}</dd>
-        <dt>{% trans "Expected Receiving Wallet Address" %}</dt>
+        <dt>{% trans "Event Currency" %}</dt>
+        <dd>{{ payment_info.primary_currency }}</dd>
+        <dt>{% trans "Order USD/ETH rate" %}</dt>
+        <dd>{{ payment_info.usd_per_eth }}</dd>
+        <dt>{% trans "Current Receiver Address in Plugin Settings" %}</dt>
         <dd>{{ wallet_address }}</dd>
-        <dt>{% trans "Transaction Sender Address" %}</dt>
-        {% if transaction_sender_address_link %}
-        <dd><a href="{{ transaction_sender_address_link }}" target="_blank">{{ transaction_sender_address }}</a></dd>
-        {% else %}
-        <dd>{{ transaction_sender_address }}</dd>
-        {% endif %}
-        <dt>{% trans "Transaction Recipient Address" %}</dt>
-        {% if transaction_recipient_address_link %}
-        <dd><a href="{{ transaction_recipient_address_link }}" target="_blank">{{ transaction_recipient_address }}</a></dd>
-        {% else %}
+        <dt>{% trans "Order Receiver Address" %}</dt>
         <dd>{{ transaction_recipient_address }}</dd>
-        {% endif %}
+        <dt>{% trans "Sender Address" %}</dt>
+        <dd>{{ transaction_sender_address }}</dd>
         <dt>{% trans "Transaction Hash" %}</dt>
-        {% if transaction_hash_link %}
-        <dd><a href="{{ transaction_hash_link }}" target="_blank">{{ transaction_hash }}</a></dd>
-        {% else %}
         <dd>{{ transaction_hash }}</dd>
-        {% endif %}
+        <dt>{% trans "Chain ID" %}</dt>
+        <dd>{{ chain_id|default_if_none:"" }}</dd>
+        <dt>{% trans "Chain Name" %}</dt>
+        <dd>{{ chain_name|default_if_none:"" }}</dd>
+        <dt>{% trans "Receipt URL" %}</dt>
+        <dd><a href="{{ receipt_url|default_if_none:" #" }}" target="_blank">{{ receipt_url|default_if_none:"" }}</a></dd>
+        <dt>{% trans "Token Currency" %}</dt>
+        <dd>{{ token_currency|default_if_none:"" }}</dd>
+        <dt>{% trans "Token Ticker" %}</dt>
+        <dd>{{ token_ticker|default_if_none:"" }}</dd>
+        <dt>{% trans "Token Name" %}</dt>
+        <dd>{{ token_name|default_if_none:"" }}</dd>
+        <dt>{% trans "Token Amount" %}</dt>
+        <dd>{{ token_amount|default_if_none:"" }}</dd>
+        <dt>{% trans "Token Decimals" %}</dt>
+        <dd>{{ token_decimals|default_if_none:"" }}</dd>
+        <dt>{% trans "Token Contract Address" %}</dt>
+        <dd>{{ token_contract_address|default_if_none:"native" }}</dd>
+        <dt>{% trans "Is Testnet" %}</dt>
+        <dd>{{ is_testnet|yesno:"Yes,No" }}</dd>
+
     </dl>
     {% if "message" in payment_info %}
         <dl class="dl-horizontal">

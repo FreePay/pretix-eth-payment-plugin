@@ -44,7 +44,7 @@ extras_require['dev'] = (
 
 setup(
     name='pretix-eth-payment-plugin',
-    version='3.0.0-dev',
+    version='4.0.0',
     description='Ethereum payment provider plugin for pretix software',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -53,12 +53,12 @@ setup(
     author_email='pretix-eth-payment-plugin@ethereum.org',
     license='Apache Software License',
     install_requires=[
-        "pretix>=4.16",
-        "web3>=6",
-        # django-bootstrap3 22.2 under py3.8, added for pip legacy resolver to avoid conflicts
+        "pretix>=2024.2.0",
         'importlib-metadata<3; python_version<"3.8"',
+        "protobuf>=4.25.3",
+        "grpcio>=1.62",
     ],
-    python_requires='>=3.7, <4',
+    python_requires='>=3.9, <4',
     extras_require=extras_require,
     packages=find_packages(exclude=['tests', 'tests.*']),
     include_package_data=True,
